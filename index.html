@@ -21,7 +21,11 @@
         .start-yellow { background: var(--y) !important; } .start-green { background: var(--g) !important; }
         .path-red { background: #ffcccc !important; } .path-blue { background: #cce5ff !important; }
         .path-yellow { background: #fff5cc !important; } .path-green { background: #ccffcc !important; }
-        .pawn { width: 85%; height: 85%; border-radius: 50%; border: 2px solid rgba(0,0,0,0.3); box-shadow: 0 3px 5px rgba(0,0,0,0.4); cursor: pointer; z-index: 10; transition: transform 0.2s; }
+        
+        /* Güvenli Bölge Yıldızı */
+        .star::after { content: "★"; color: rgba(0,0,0,0.2); font-size: 14px; position: absolute; z-index: 1; }
+
+        .pawn { width: 85%; height: 85%; border-radius: 50%; border: 2px solid rgba(0,0,0,0.3); box-shadow: 0 3px 5px rgba(0,0,0,0.4); cursor: pointer; z-index: 10; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .p-red { background: var(--r); } .p-blue { background: var(--b); } .p-yellow { background: var(--y); } .p-green { background: var(--g); }
         .controls { margin-top: 15px; }
         .dice-btn { padding: 12px 30px; background: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; box-shadow: 0 4px #888; }
@@ -41,7 +45,10 @@
     <script>
         const colors = ['red', 'blue', 'yellow', 'green'];
         const startCells = { red:[7,2], blue:[2,9], yellow:[9,14], green:[14,7] };
-        // Tüm yolun koordinatları (Dış çerçeve 52 kare)
+        
+        // Yıldızlı Güvenli Kareler Koordinatları
+        const safeNodes = ["7-2", "2-9", "9-14", "14-7", "9-3", "3-7", "7-13", "13-9"];
+
         const mainPath = [
             [7,1],[7,2],[7,3],[7,4],[7,5],[7,6],[6,6],[5,6],[4,6],[3,6],[2,6],[1,6],[1,7],[1,8],[1,9],[2,9],[3,9],[4,9],[5,9],[6,9],[7,9],[7,10],[7,11],[7,12],[7,13],[7,14],[7,15],[8,15],[9,15],[9,14],[9,13],[9,12],[9,11],[9,10],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[15,8],[15,7],[15,6],[14,7],[13,7],[12,7],[11,7],[10,7],[9,7],[9,6],[9,5],[9,4],[9,3],[9,2],[9,1],[8,1]
         ];
@@ -57,14 +64,19 @@
                         const cell = document.createElement('div');
                         cell.className = 'cell'; cell.id = `c-${r}-${c}`;
                         cell.style.gridArea = `${r}/${c}`;
+                        
                         if(r==8 && c>1 && c<7) cell.classList.add('path-red');
                         if(c==8 && r>1 && r<7) cell.classList.add('path-blue');
                         if(r==8 && c>9 && c<15) cell.classList.add('path-yellow');
                         if(c==8 && r>9 && r<15) cell.classList.add('path-green');
+                        
                         if(r==7 && c==2) cell.classList.add('start-red');
                         if(r==2 && c==9) cell.classList.add('start-blue');
                         if(r==9 && c==14) cell.classList.add('start-yellow');
                         if(r==14 && c==7) cell.classList.add('start-green');
+
+                        if(safeNodes.includes(`${r}-${c}`)) cell.classList.add('star');
+
                         board.appendChild(cell);
                     }
                 }
@@ -74,7 +86,7 @@
         function initPawns() {
             colors.forEach(c => {
                 for(let i=0; i<4; i++) {
-                    const p = { id: `${c}-${i}`, color: c, pos: -1, stepCount: 0 };
+                    const p = { id: `${c}-${i}`, color: c, pos: -1 };
                     pawns.push(p);
                     const pEl = document.createElement('div');
                     pEl.className = `pawn p-${c}`; pEl.id = p.id;
@@ -98,13 +110,35 @@
 
             if(p.pos === -1 && lastDice === 6) {
                 p.pos = mainPath.findIndex(coord => coord[0] === startCells[p.color][0] && coord[1] === startCells[p.color][1]);
-                p.stepCount = 0;
+                checkCapture(p);
                 updatePawnPos(p);
                 finishAction();
             } else if(p.pos !== -1) {
                 p.pos = (p.pos + lastDice) % mainPath.length;
+                checkCapture(p);
                 updatePawnPos(p);
                 finishAction();
+            }
+        }
+
+        // TAŞ KIRMA MANTIĞI
+        function checkCapture(p) {
+            const currentCoord = mainPath[p.pos];
+            const coordKey = `${currentCoord[0]}-${currentCoord[1]}`;
+            
+            // Eğer kare güvenli bölge değilse kırma işlemini kontrol et
+            if (!safeNodes.includes(coordKey)) {
+                pawns.forEach(otherPawn => {
+                    if (otherPawn.color !== p.color && otherPawn.pos !== -1) {
+                        const otherCoord = mainPath[otherPawn.pos];
+                        if (otherCoord[0] === currentCoord[0] && otherCoord[1] === currentCoord[1]) {
+                            // KIRMA GERÇEKLEŞTİ
+                            otherPawn.pos = -1;
+                            const house = document.getElementById('h-' + otherPawn.color);
+                            house.appendChild(document.getElementById(otherPawn.id));
+                        }
+                    }
+                });
             }
         }
 
