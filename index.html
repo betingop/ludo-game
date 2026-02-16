@@ -7,53 +7,28 @@
     <style>
         :root { --r: #ff3232; --g: #28c76f; --b: #1e90ff; --y: #f9ca24; --bg: #121212; }
         body { margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; font-family: sans-serif; }
-        
-        .board { 
-            display: grid; grid-template-columns: repeat(15, 1fr); grid-template-rows: repeat(15, 1fr); 
-            width: 95vw; height: 95vw; max-width: 450px; max-height: 450px; 
-            background: #fff; border: 4px solid #333; position: relative;
-        }
-
+        .board { display: grid; grid-template-columns: repeat(15, 1fr); grid-template-rows: repeat(15, 1fr); width: 95vw; height: 95vw; max-width: 450px; max-height: 450px; background: #fff; border: 4px solid #333; position: relative; }
         .house { grid-column: span 6; grid-row: span 6; display: flex; align-items: center; justify-content: center; border: 1px solid #000; }
         .h-inner { width: 75%; height: 75%; background: white; border-radius: 10px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; padding: 10px; border: 1px solid #ddd; }
-        
         .red { background: var(--r); } .blue { background: var(--b); } .yellow { background: var(--y); } .green { background: var(--g); }
-
         .center { grid-area: 7/7/10/10; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; border: 1px solid #000; background: #eee; }
-        .tri { width: 0; height: 0; border-style: solid; }
-        .tri-r { border-width: 33px 0 33px 33px; border-color: transparent transparent transparent var(--r); grid-area: 1/1/3/2; }
-        .tri-b { border-width: 33px 33px 0 33px; border-color: var(--b) transparent transparent transparent; grid-area: 1/1/2/3; }
-        .tri-y { border-width: 33px 33px 33px 0; border-color: transparent var(--y) transparent transparent; grid-area: 1/2/3/3; }
-        .tri-g { border-width: 0 33px 33px 33px; border-color: transparent transparent var(--g) transparent; grid-area: 2/1/3/3; }
-
+        .tri-r { border-width: 33px 0 33px 33px; border-color: transparent transparent transparent var(--r); border-style: solid; grid-area: 1/1/3/2; }
+        .tri-b { border-width: 33px 33px 0 33px; border-color: var(--b) transparent transparent transparent; border-style: solid; grid-area: 1/1/2/3; }
+        .tri-y { border-width: 33px 33px 33px 0; border-color: transparent var(--y) transparent transparent; border-style: solid; grid-area: 1/2/3/3; }
+        .tri-g { border-width: 0 33px 33px 33px; border-color: transparent transparent var(--g) transparent; border-style: solid; grid-area: 2/1/3/3; }
         .cell { border: 0.1px solid #ddd; box-sizing: border-box; display: flex; align-items: center; justify-content: center; position: relative; }
-        
-        /* İSTEDİĞİN RENKLİ BAŞLANGIÇ KARELERİ */
-        .start-red { background: var(--r) !important; }
-        .start-blue { background: var(--b) !important; }
-        .start-yellow { background: var(--y) !important; }
-        .start-green { background: var(--g) !important; }
-
-        /* Bitiş Yolları */
-        .path-red { background: var(--r); opacity: 0.8; }
-        .path-blue { background: var(--b); opacity: 0.8; }
-        .path-yellow { background: var(--y); opacity: 0.8; }
-        .path-green { background: var(--g); opacity: 0.8; }
-
-        .pawn { 
-            width: 80%; height: 80%; border-radius: 50%; border: 2px solid rgba(0,0,0,0.3); 
-            box-shadow: 0 3px 5px rgba(0,0,0,0.4); cursor: pointer; transition: all 0.2s;
-        }
-        .p-red { background: var(--r); } .p-blue { background: var(--b); } 
-        .p-yellow { background: var(--y); } .p-green { background: var(--g); }
-
+        .start-red { background: var(--r) !important; } .start-blue { background: var(--b) !important; }
+        .start-yellow { background: var(--y) !important; } .start-green { background: var(--g) !important; }
+        .path-red { background: #ffcccc !important; } .path-blue { background: #cce5ff !important; }
+        .path-yellow { background: #fff5cc !important; } .path-green { background: #ccffcc !important; }
+        .pawn { width: 85%; height: 85%; border-radius: 50%; border: 2px solid rgba(0,0,0,0.3); box-shadow: 0 3px 5px rgba(0,0,0,0.4); cursor: pointer; z-index: 10; transition: transform 0.2s; }
+        .p-red { background: var(--r); } .p-blue { background: var(--b); } .p-yellow { background: var(--y); } .p-green { background: var(--g); }
         .controls { margin-top: 15px; }
         .dice-btn { padding: 12px 30px; background: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; box-shadow: 0 4px #888; }
     </style>
 </head>
 <body>
     <div id="status" style="margin-bottom:10px; color:white;">Sıra: <span id="turn-text" style="color:var(--r); font-weight:bold;">KIRMIZI</span></div>
-    
     <div class="board" id="ludo-board">
         <div class="house red" style="grid-area: 1/1/7/7;"><div class="h-inner" id="h-red"></div></div>
         <div class="house blue" style="grid-area: 1/10/7/16;"><div class="h-inner" id="h-blue"></div></div>
@@ -61,84 +36,91 @@
         <div class="house yellow" style="grid-area: 10/10/16/16;"><div class="h-inner" id="h-yellow"></div></div>
         <div class="center"><div class="tri-r"></div><div class="tri-b"></div><div class="tri-y"></div><div class="tri-g"></div></div>
     </div>
-
-    <div class="controls">
-        <button class="dice-btn" onclick="roll()">🎲 Zar At: <span id="dice-v">?</span></button>
-    </div>
+    <div class="controls"><button class="dice-btn" onclick="roll()">🎲 Zar At: <span id="dice-v">?</span></button></div>
 
     <script>
-        const board = document.getElementById('ludo-board');
         const colors = ['red', 'blue', 'yellow', 'green'];
+        const startCells = { red:[7,2], blue:[2,9], yellow:[9,14], green:[14,7] };
+        // Tüm yolun koordinatları (Dış çerçeve 52 kare)
+        const mainPath = [
+            [7,1],[7,2],[7,3],[7,4],[7,5],[7,6],[6,6],[5,6],[4,6],[3,6],[2,6],[1,6],[1,7],[1,8],[1,9],[2,9],[3,9],[4,9],[5,9],[6,9],[7,9],[7,10],[7,11],[7,12],[7,13],[7,14],[7,15],[8,15],[9,15],[9,14],[9,13],[9,12],[9,11],[9,10],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[15,8],[15,7],[15,6],[14,7],[13,7],[12,7],[11,7],[10,7],[9,7],[9,6],[9,5],[9,4],[9,3],[9,2],[9,1],[8,1]
+        ];
+        
         let turn = 0, lastDice = 0, canRoll = true;
-
-        // Koordinat Haritası (Sırayla tüm yol)
-        const pathCoords = []; 
-        // Burada yolu manuel çizmek yerine hücreleri oluştururken renklere göre atama yapıyoruz
+        let pawns = [];
 
         function buildBoard() {
+            const board = document.getElementById('ludo-board');
             for(let r=1; r<=15; r++){
                 for(let c=1; c<=15; c++){
                     if(!((r<7 && c<7) || (r<7 && c>9) || (r>9 && c<7) || (r>9 && c>9) || (r>6 && r<10 && c>6 && c<10))){
                         const cell = document.createElement('div');
                         cell.className = 'cell'; cell.id = `c-${r}-${c}`;
                         cell.style.gridArea = `${r}/${c}`;
-                        
-                        // Koridor Renkleri
                         if(r==8 && c>1 && c<7) cell.classList.add('path-red');
                         if(c==8 && r>1 && r<7) cell.classList.add('path-blue');
                         if(r==8 && c>9 && c<15) cell.classList.add('path-yellow');
                         if(c==8 && r>9 && r<15) cell.classList.add('path-green');
-
-                        // BAŞLANGIÇ KARELERİ (İSTEDİĞİN GİBİ RENKLİ)
                         if(r==7 && c==2) cell.classList.add('start-red');
                         if(r==2 && c==9) cell.classList.add('start-blue');
                         if(r==9 && c==14) cell.classList.add('start-yellow');
                         if(r==14 && c==7) cell.classList.add('start-green');
-
                         board.appendChild(cell);
                     }
                 }
             }
         }
 
-        let pawns = [];
-        colors.forEach(c => {
-            for(let i=0; i<4; i++) {
-                const p = { id: `${c}-${i}`, color: c, pos: -1 };
-                pawns.push(p);
-                const pEl = document.createElement('div');
-                pEl.className = `pawn p-${c}`; pEl.id = p.id;
-                pEl.onclick = () => movePawn(p);
-                document.getElementById('h-'+c).appendChild(pEl);
-            }
-        });
+        function initPawns() {
+            colors.forEach(c => {
+                for(let i=0; i<4; i++) {
+                    const p = { id: `${c}-${i}`, color: c, pos: -1, stepCount: 0 };
+                    pawns.push(p);
+                    const pEl = document.createElement('div');
+                    pEl.className = `pawn p-${c}`; pEl.id = p.id;
+                    pEl.onclick = () => handleMove(p);
+                    document.getElementById('h-'+c).appendChild(pEl);
+                }
+            });
+        }
 
         window.roll = function() {
             if(!canRoll) return;
             lastDice = Math.floor(Math.random() * 6) + 1;
             document.getElementById('dice-v').innerText = lastDice;
             canRoll = false;
-            // Hareket edemiyorsa sırayı geç (Basit mantık)
             const canMove = pawns.some(p => p.color === colors[turn] && (p.pos !== -1 || lastDice === 6));
             if(!canMove) setTimeout(nextTurn, 1000);
         };
 
-        function movePawn(p) {
+        function handleMove(p) {
             if(p.color !== colors[turn] || lastDice === 0) return;
-            
-            // Yuvadan Çıkış (6 ile)
+
             if(p.pos === -1 && lastDice === 6) {
-                const startCells = { red:'c-7-2', blue:'c-2-9', yellow:'c-9-14', green:'c-14-7' };
-                const cell = document.getElementById(startCells[p.color]);
-                cell.appendChild(document.getElementById(p.id));
-                p.pos = 0; // Başlangıç noktası
-                finishMove();
+                p.pos = mainPath.findIndex(coord => coord[0] === startCells[p.color][0] && coord[1] === startCells[p.color][1]);
+                p.stepCount = 0;
+                updatePawnPos(p);
+                finishAction();
+            } else if(p.pos !== -1) {
+                p.pos = (p.pos + lastDice) % mainPath.length;
+                updatePawnPos(p);
+                finishAction();
             }
         }
 
-        function finishMove() {
-            if(lastDice !== 6) nextTurn();
-            else { lastDice = 0; canRoll = true; document.getElementById('dice-v').innerText = "6! Tekrar"; }
+        function updatePawnPos(p) {
+            const coord = mainPath[p.pos];
+            const cell = document.getElementById(`c-${coord[0]}-${coord[1]}`);
+            cell.appendChild(document.getElementById(p.id));
+        }
+
+        function finishAction() {
+            if(lastDice === 6) {
+                lastDice = 0; canRoll = true;
+                document.getElementById('dice-v').innerText = "6! Tekrar";
+            } else {
+                nextTurn();
+            }
         }
 
         function nextTurn() {
@@ -151,6 +133,7 @@
         }
 
         buildBoard();
+        initPawns();
     </script>
 </body>
 </html>
