@@ -14,88 +14,171 @@
             background: white; border: 4px solid #333; position: relative; 
         }
 
-        /* Bölgeler */
-        .house { grid-column: span 6; grid-row: span 6; display: flex; flex-wrap: wrap; align-content: space-around; justify-content: space-around; padding: 10px; border: 1px solid #0002; }
+        .house { grid-column: span 6; grid-row: span 6; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); padding: 15%; gap: 10px; border: 1px solid #0002; }
         .red { background: var(--r); } .green { background: var(--g); } .blue { background: var(--b); } .yellow { background: var(--y); }
         
-        /* Merkez Bitiş Alanı */
-        .center-finish { 
-            grid-area: 7/7/10/10; background: #eee; border: 1px solid #000;
-            display: flex; align-items: center; justify-content: center; font-size: 10px; color: #333; font-weight: bold;
-        }
-
-        /* Hücreler */
-        .cell { border: 0.1px solid #ddd; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 8px; }
+        .center-finish { grid-area: 7/7/10/10; background: #eee; border: 1px solid #000; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #333; font-weight: bold; }
+        .cell { border: 0.1px solid #ddd; box-sizing: border-box; position: relative; }
         
-        /* Renkli Koridorlar (Home Stretch) */
-        .s-red { background: var(--r) !important; opacity: 0.6; }
-        .s-green { background: var(--g) !important; opacity: 0.6; }
-        .s-blue { background: var(--b) !important; opacity: 0.6; }
-        .s-yellow { background: var(--y) !important; opacity: 0.6; }
+        .s-red { background: var(--r) !important; opacity: 0.4; }
+        .s-green { background: var(--g) !important; opacity: 0.4; }
+        .s-blue { background: var(--b) !important; opacity: 0.4; }
+        .s-yellow { background: var(--y) !important; opacity: 0.4; }
 
-        /* Yıldızlı/Güvenli Kareler */
-        .safe { background: #e0e0e0; font-weight: bold; }
-        .safe::after { content: "★"; color: #777; font-size: 12px; }
+        .safe { background: #e0e0e0; }
+        .safe::after { content: "★"; color: #aaa; font-size: 10px; position: absolute; }
 
-        /* Taşlar */
         .pawn { 
-            width: 5.5%; height: 5.5%; border-radius: 50%; border: 2px solid rgba(0,0,0,0.5); 
-            position: absolute; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-            z-index: 100; box-shadow: 0 3px 6px rgba(0,0,0,0.4); 
+            width: 80%; height: 80%; border-radius: 50%; border: 2px solid rgba(0,0,0,0.5); 
+            margin: 10%; transition: all 0.3s ease; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.4); 
+            cursor: pointer;
         }
+        /* Yoldaki taşlar için mutlak konumlandırma ayarı */
+        .board > .pawn { position: absolute; width: 5%; height: 5%; margin: 0.5%; }
+
         .p-red { background: var(--r); } .p-green { background: var(--g); } 
         .p-blue { background: var(--b); } .p-yellow { background: var(--y); }
 
-        .controls { margin-top: 15px; display: flex; align-items: center; gap: 15px; }
-        .dice-btn { padding: 12px 25px; background: white; color: black; border-radius: 8px; font-weight: bold; border: none; }
+        .controls { margin-top: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .dice-btn { padding: 12px 25px; background: white; color: black; border-radius: 8px; font-weight: bold; border: none; font-size: 16px; }
+        .active-pawn { outline: 3px solid white; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
-    <div id="status">Sıra: <span id="turn-text" style="color:var(--r)">KIRMIZI</span></div>
+    <div id="status">Sıra: <span id="turn-text" style="color:var(--r); font-weight:bold;">KIRMIZI</span></div>
     
     <div class="board" id="ludo-board">
-        <div class="house red" style="grid-area: 1/1/7/7;"></div>
-        <div class="house green" style="grid-area: 1/10/7/16;"></div>
-        <div class="house blue" style="grid-area: 10/1/16/7;"></div>
-        <div class="house yellow" style="grid-area: 10/10/16/16;"></div>
+        <div class="house red" id="house-red" style="grid-area: 1/1/7/7;"></div>
+        <div class="house green" id="house-green" style="grid-area: 1/10/7/16;"></div>
+        <div class="house blue" id="house-blue" style="grid-area: 10/1/16/7;"></div>
+        <div class="house yellow" id="house-yellow" style="grid-area: 10/10/16/16;"></div>
         <div class="center-finish">BİTİŞ</div>
     </div>
 
     <div class="controls">
-        <button class="dice-btn" onclick="roll()">🎲 Zar At: <span id="v">?</span></button>
+        <button class="dice-btn" id="roll-btn" onclick="roll()">🎲 Zar At: <span id="dice-v">?</span></button>
     </div>
 
     <script>
-        const board = document.getElementById('ludo-board');
-        
-        // 1. TAM TAHTA TASARIMI (Hücreleri oluşturma)
-        for(let r=1; r<=15; r++){
-            for(let c=1; c<=15; c++){
-                // Evlerin ve merkezin içini boş geç, sadece yolları çiz
-                if(!((r<7 && c<7) || (r<7 && c>9) || (r>9 && c<7) || (r>9 && c>9) || (r>6 && r<10 && c>6 && c<10))){
-                    const cell = document.createElement('div');
-                    cell.className = 'cell';
-                    cell.style.gridArea = `${r}/${c}`;
-                    
-                    // Renkli koridorları boyama logic'i
-                    if(c==8 && r>1 && r<7) cell.classList.add('s-green');
-                    if(c==8 && r>9 && r<15) cell.classList.add('s-blue');
-                    if(r==8 && c>1 && c<7) cell.classList.add('s-red');
-                    if(r==8 && c>9 && c<15) cell.classList.add('s-yellow');
-                    
-                    // Başlangıç kareleri
-                    if(r==7 && c==2) cell.classList.add('safe', 'red-start');
-                    if(r==2 && c==9) cell.classList.add('safe', 'green-start');
-                    if(r==9 && c==14) cell.classList.add('safe', 'yellow-start');
-                    if(r==14 && c==7) cell.classList.add('safe', 'blue-start');
+        const tg = window.Telegram.WebApp;
+        tg.expand();
 
-                    board.appendChild(cell);
+        const board = document.getElementById('ludo-board');
+        const colors = ['red', 'green', 'yellow', 'blue'];
+        const startNodes = { red: 0, green: 13, yellow: 26, blue: 39 };
+        let turnIndex = 0;
+        let lastDice = 0;
+        let canRoll = true;
+
+        // 1. TAM YOL HARİTASI (52 Ana Kare)
+        const mainPath = [
+            {r:7,c:1},{r:7,c:2},{r:7,c:3},{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:6,c:6},{r:5,c:6},{r:4,c:6},{r:3,c:6},{r:2,c:6},{r:1,c:6},{r:1,c:7},{r:1,c:8},{r:1,c:9},{r:2,c:9},{r:3,c:9},{r:4,c:9},{r:5,c:9},{r:6,c:9},{r:7,c:9},{r:7,c:10},{r:7,c:11},{r:7,c:12},{r:7,c:13},{r:7,c:14},{r:7,c:15},{r:8,c:15},{r:9,c:15},{r:9,c:14},{r:9,c:13},{r:9,c:12},{r:9,c:11},{r:9,c:10},{r:9,c:9},{r:10,c:9},{r:11,c:9},{r:12,c:9},{r:13,c:9},{r:14,c:9},{r:15,c:9},{r:15,c:8},{r:15,c:7},{r:14,c:7},{r:13,c:7},{r:12,c:7},{r:11,c:7},{r:10,c:7},{r:9,c:7},{r:9,c:6},{r:9,c:5},{r:9,c:4},{r:9,c:3},{r:9,c:2},{r:9,c:1},{r:8,c:1}
+        ];
+
+        // 2. TAŞLARIN BAŞLATILMASI
+        let pawns = [];
+        colors.forEach(c => {
+            for(let i=0; i<4; i++) {
+                pawns.push({ id: c+i, color: c, pos: -1, stepCount: 0 });
+            }
+        });
+
+        // 3. TAHTA HÜCRELERİNİ ÇİZME
+        function createCells() {
+            for(let r=1; r<=15; r++){
+                for(let c=1; c<=15; c++){
+                    if(!((r<7 && c<7) || (r<7 && c>9) || (r>9 && c<7) || (r>9 && c>9) || (r>6 && r<10 && c>6 && c<10))){
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.style.gridArea = `${r}/${c}`;
+                        if(c==8 && r>1 && r<7) cell.classList.add('s-green');
+                        if(c==8 && r>9 && r<15) cell.classList.add('s-blue');
+                        if(r==8 && c>1 && c<7) cell.classList.add('s-red');
+                        if(r==8 && c>9 && c<15) cell.classList.add('s-yellow');
+                        if((r==7 && c==2) || (r==2 && c==9) || (r==9 && c==14) || (r==14 && c==7)) cell.classList.add('safe');
+                        board.appendChild(cell);
+                    }
                 }
             }
         }
 
-        // Oyunun beyni (Taşların ve yolların dizisi) buraya gelecek
-        // ... (Zar ve hareket fonksiyonları bir öncekiyle benzer ama gelişmiş olacak)
+        // 4. TAŞLARI GÜNCELLEME
+        function updateDisplay() {
+            // Önce mevcutları temizle
+            document.querySelectorAll('.pawn').forEach(p => p.remove());
+            
+            pawns.forEach(p => {
+                const pEl = document.createElement('div');
+                pEl.className = `pawn p-${p.color}`;
+                if (canRoll === false && p.color === colors[turnIndex]) {
+                    pEl.classList.add('active-pawn');
+                }
+                
+                if (p.pos === -1) {
+                    document.getElementById(`house-${p.color}`).appendChild(pEl);
+                } else {
+                    const coord = mainPath[p.pos];
+                    pEl.style.gridArea = `${coord.r}/${coord.c}`;
+                    board.appendChild(pEl);
+                }
+                pEl.onclick = () => handlePawnClick(p);
+            });
+            
+            const turnText = document.getElementById('turn-text');
+            turnText.innerText = colors[turnIndex].toUpperCase();
+            turnText.style.color = `var(--${colors[turnIndex][0]})`;
+        }
+
+        // 5. OYUN MANTIĞI
+        function roll() {
+            if (!canRoll) return;
+            lastDice = Math.floor(Math.random() * 6) + 1;
+            document.getElementById('dice-v').innerText = lastDice;
+            canRoll = false;
+            
+            // Hareket edebilir taş var mı?
+            const canMove = pawns.some(p => p.color === colors[turnIndex] && (p.pos !== -1 || lastDice === 6));
+            if (!canMove) {
+                setTimeout(nextTurn, 1000);
+            } else {
+                updateDisplay();
+            }
+        }
+
+        function handlePawnClick(pawn) {
+            if (pawn.color !== colors[turnIndex] || lastDice === 0) return;
+
+            if (pawn.pos === -1 && lastDice === 6) {
+                pawn.pos = startNodes[pawn.color];
+                finishAction();
+            } else if (pawn.pos !== -1) {
+                pawn.pos = (pawn.pos + lastDice) % 52;
+                finishAction();
+            }
+        }
+
+        function finishAction() {
+            if (lastDice !== 6) {
+                nextTurn();
+            } else {
+                lastDice = 0;
+                canRoll = true;
+                document.getElementById('dice-v').innerText = "6! Tekrar";
+                updateDisplay();
+            }
+        }
+
+        function nextTurn() {
+            turnIndex = (turnIndex + 1) % 4;
+            lastDice = 0;
+            canRoll = true;
+            document.getElementById('dice-v').innerText = "?";
+            updateDisplay();
+        }
+
+        createCells();
+        updateDisplay();
     </script>
 </body>
 </html>
