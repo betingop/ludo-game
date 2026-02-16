@@ -8,53 +8,63 @@
         :root { --r: #ff4d4d; --g: #2ecc71; --b: #3498db; --y: #f1c40f; }
         body { margin: 0; background: #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: white; font-family: sans-serif; overflow: hidden; }
         .board { display: grid; grid-template-columns: repeat(15, 1fr); grid-template-rows: repeat(15, 1fr); width: 95vw; height: 95vw; max-width: 450px; max-height: 450px; background: white; border: 4px solid #333; position: relative; }
-        .house { grid-column: span 6; grid-row: span 6; display: flex; flex-wrap: wrap; align-content: space-around; justify-content: space-around; padding: 10px; border: 1px solid #0002; }
-        .red { background: var(--r); } .green { background: var(--g); }
-        .blue { background: var(--b); } .yellow { background: var(--y); }
-        .center { grid-area: 7/7/10/10; background: #ddd; border: 1px solid #000; }
+        .house { grid-column: span 6; grid-row: span 6; display: flex; flex-wrap: wrap; align-content: space-around; justify-content: space-around; padding: 10px; z-index: 5; }
+        .red { background: var(--r); } .green { background: var(--g); } .blue { background: var(--b); } .yellow { background: var(--y); }
+        .center { grid-area: 7/7/10/10; background: #ddd; border: 1px solid #000; display: flex; align-items: center; justify-content: center; color: #333; font-weight: bold; font-size: 12px; }
+        .cell { border: 0.1px solid #ccc; box-sizing: border-box; display: flex; align-items: center; justify-content: center; }
         
-        /* Taş Tasarımı */
-        .pawn { width: 35%; height: 35%; border-radius: 50%; border: 3px solid rgba(0,0,0,0.3); box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.2s; }
-        .p-red { background: var(--r); } .p-green { background: var(--g); }
-        .p-blue { background: var(--b); } .p-yellow { background: var(--y); }
+        /* Taşlar artık mutlak konumlu (absolute) olacak */
+        .pawn { width: 5.5%; height: 5.5%; border-radius: 50%; border: 2px solid rgba(0,0,0,0.5); position: absolute; transition: all 0.3s ease; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.4); }
+        .p-red { background: var(--r); } .p-green { background: var(--g); } .p-blue { background: var(--b); } .p-yellow { background: var(--y); }
         
-        /* Yol Kareleri */
-        .cell { border: 0.1px solid #ccc; box-sizing: border-box; }
-        .dice-btn { margin-top: 15px; padding: 12px 25px; background: white; color: black; border-radius: 8px; font-weight: bold; border: none; box-shadow: 0 4px 0 #999; }
+        .dice-btn { margin-top: 15px; padding: 12px 25px; background: white; color: black; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; }
     </style>
 </head>
 <body>
     <div id="status">Sıra: <span id="turn" style="color:var(--r)">Kırmızı</span></div>
+    
     <div class="board" id="ludo-board">
-        <div class="house red" style="grid-area: 1/1/7/7;">
-            <div class="pawn p-red"></div><div class="pawn p-red"></div>
-            <div class="pawn p-red"></div><div class="pawn p-red"></div>
-        </div>
-        <div class="house green" style="grid-area: 1/10/7/16;">
-            <div class="pawn p-green"></div><div class="pawn p-green"></div>
-            <div class="pawn p-green"></div><div class="pawn p-green"></div>
-        </div>
-        <div class="house blue" style="grid-area: 10/1/16/7;">
-            <div class="pawn p-blue"></div><div class="pawn p-blue"></div>
-            <div class="pawn p-blue"></div><div class="pawn p-blue"></div>
-        </div>
-        <div class="house yellow" style="grid-area: 10/10/16/16;">
-            <div class="pawn p-yellow"></div><div class="pawn p-yellow"></div>
-            <div class="pawn p-yellow"></div><div class="pawn p-yellow"></div>
-        </div>
-        <div class="center"></div>
+        <div class="house red" style="grid-area: 1/1/7/7;"></div>
+        <div class="house green" style="grid-area: 1/10/7/16;"></div>
+        <div class="house blue" style="grid-area: 10/1/16/7;"></div>
+        <div class="house yellow" style="grid-area: 10/10/16/16;"></div>
+        <div class="center">BİTİŞ</div>
     </div>
+
     <button class="dice-btn" onclick="roll()">🎲 Zar At: <span id="v">?</span></button>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // Beyaz yol karelerini oluşturma (Grid sistemi üzerine)
         const board = document.getElementById('ludo-board');
+        const boardSize = 15;
+        let lastDice = 0;
+
+        // 1. YOL HARİTASI (Koordinatlar)
+        // Bu dizi, taşların izleyeceği karelerin (Satır/Sütun) listesidir.
+        const path = [
+            {r:7,c:1},{r:7,c:2},{r:7,c:3},{r:7,c:4},{r:7,c:5},{r:7,c:6},
+            {r:6,c:6},{r:5,c:6},{r:4,c:6},{r:3,c:6},{r:2,c:6},{r:1,c:6},
+            {r:1,c:7},{r:1,c:8},{r:1,c:9},{r:2,c:9},{r:3,c:9},{r:4,c:9},
+            {r:5,c:9},{r:6,c:9},{r:7,c:9},{r:7,c:10},{r:7,c:11},{r:7,c:12},
+            {r:7,c:13},{r:7,c:14},{r:7,c:15},{r:8,c:15},{r:9,c:15},{r:9,c:14},
+            {r:9,c:13},{r:9,c:12},{r:9,c:11},{r:9,c:10},{r:9,c:9},{r:10,c:9},
+            {r:11,c:9},{r:12,c:9},{r:13,c:9},{r:14,c:9},{r:15,c:9},{r:15,c:8},
+            {r:15,c:7},{r:14,c:7},{r:13,c:7},{r:12,c:7},{r:11,c:7},{r:10,c:7},
+            {r:9,c:7},{r:9,c:6},{r:9,c:5},{r:9,c:4},{r:9,c:3},{r:9,c:2},{r:9,c:1},{r:8,c:1}
+        ];
+
+        // 2. TAŞLARIN DURUMU
+        // pos: -1 (evde), 0-51 (yolda)
+        let pawns = [
+            { id: 'r1', color: 'red', pos: -1, start: 0 },
+            { id: 'r2', color: 'red', pos: -1, start: 0 }
+        ];
+
+        // Izgarayı görselleştirme
         for(let r=1; r<=15; r++){
             for(let c=1; c<=15; c++){
-                // Sadece yolların olduğu koordinatlara boş hücre ekle
                 if(!((r<7 && c<7) || (r<7 && c>9) || (r>9 && c<7) || (r>9 && c>9) || (r>6 && r<10 && c>6 && c<10))){
                     const cell = document.createElement('div');
                     cell.className = 'cell';
@@ -64,11 +74,52 @@
             }
         }
 
-        function roll() {
-            const v = Math.floor(Math.random() * 6) + 1;
-            document.getElementById('v').innerText = v;
-            tg.HapticFeedback.impactOccurred('light');
+        // TAŞLARI ÇİZME FONKSİYONU
+        function drawPawns() {
+            // Eski taşları temizle
+            document.querySelectorAll('.pawn').forEach(p => p.remove());
+            
+            pawns.forEach(p => {
+                const el = document.createElement('div');
+                el.className = `pawn p-${p.color}`;
+                
+                if(p.pos === -1) {
+                    // Evdeki konumu (Basitlik için şimdilik sabit)
+                    el.style.left = "15%"; el.style.top = "15%";
+                    // Evin içine yerleştir
+                    document.querySelector('.house.'+p.color).appendChild(el);
+                } else {
+                    // Yoldaki konumu
+                    const coords = path[p.pos];
+                    el.style.gridArea = `${coords.r}/${coords.c}`;
+                    board.appendChild(el);
+                }
+                
+                el.onclick = () => movePawn(p);
+            });
         }
+
+        function roll() {
+            lastDice = Math.floor(Math.random() * 6) + 1;
+            document.getElementById('v').innerText = lastDice;
+            tg.HapticFeedback.notificationOccurred('success');
+        }
+
+        function movePawn(pawn) {
+            if(lastDice === 0) return;
+
+            if(pawn.pos === -1 && lastDice === 6) {
+                pawn.pos = pawn.start; // Dışarı çık
+            } else if(pawn.pos >= 0) {
+                pawn.pos = (pawn.pos + lastDice) % path.length; // Yolda ilerle
+            }
+            
+            lastDice = 0; // Zarı kullanıldı say
+            document.getElementById('v').innerText = "?";
+            drawPawns();
+        }
+
+        drawPawns(); // İlk açılışta taşları koy
     </script>
 </body>
 </html>
