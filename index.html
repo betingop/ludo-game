@@ -1,109 +1,154 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --r: #ff4d4d; --g: #2ecc71; --b: #3498db; --y: #f1c40f; --bg: #121212; }
-        body { margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: white; font-family: sans-serif; overflow: hidden; }
-        .board { display: grid; grid-template-columns: repeat(15, 1fr); grid-template-rows: repeat(15, 1fr); width: 95vw; height: 95vw; max-width: 450px; max-height: 450px; background: white; border: 4px solid #333; position: relative; }
-        .house { grid-column: span 6; grid-row: span 6; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 8px; border: 1px solid #0002; }
+        :root { --r: #ff3232; --g: #28c76f; --b: #1e90ff; --y: #f9ca24; --bg: #1e1e1e; }
+        body { margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+        
+        /* ANA TAHTA TASARIMI */
+        .board { 
+            display: grid; grid-template-columns: repeat(15, 1fr); grid-template-rows: repeat(15, 1fr); 
+            width: 95vw; height: 95vw; max-width: 450px; max-height: 450px; 
+            background: #fff; border: 5px solid #333; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        /* YUVALAR (HOUSES) */
+        .house { grid-column: span 6; grid-row: span 6; display: flex; align-items: center; justify-content: center; border: 1px solid #000; }
+        .house-inner { width: 70%; height: 70%; background: white; border-radius: 15px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 10px; padding: 10px; border: 2px solid rgba(0,0,0,0.1); }
+        
         .red { background: var(--r); } .green { background: var(--g); } .blue { background: var(--b); } .yellow { background: var(--y); }
-        .center-finish { grid-area: 7/7/10/10; background: #eee; border: 1px solid #000; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #333; font-weight: bold; z-index: 5; }
-        .cell { border: 0.1px solid #ddd; box-sizing: border-box; }
-        .s-red { background: #ffcccc !important; } .s-green { background: #ccffcc !important; } .s-blue { background: #cce5ff !important; } .s-yellow { background: #fff5cc !important; }
-        .pawn { width: 32px; height: 32px; border-radius: 50%; border: 3px solid rgba(0,0,0,0.4); z-index: 10; box-shadow: 0 4px 8px rgba(0,0,0,0.5); cursor: pointer; flex-shrink: 0; }
-        .board > .pawn { width: 80%; height: 80%; position: absolute; margin: 10%; z-index: 20; }
-        .p-red { background: var(--r); } .p-green { background: var(--g); } .p-blue { background: var(--b); } .p-yellow { background: var(--y); }
-        .controls { margin-top: 20px; }
-        .dice-btn { padding: 14px 28px; background: white; color: black; border-radius: 12px; font-weight: bold; border: none; font-size: 18px; box-shadow: 0 5px #bbb; cursor: pointer; }
+
+        /* MERKEZ (BİTİŞ) */
+        .center-finish { 
+            grid-area: 7/7/10/10; display: grid; 
+            grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; 
+            background: #eee; border: 1px solid #000; z-index: 5;
+        }
+        .tri { width: 0; height: 0; border-style: solid; }
+        .tri-red { border-width: 33px 33px 0 0; border-color: var(--r) transparent transparent transparent; }
+        .tri-green { border-width: 0 33px 33px 0; border-color: transparent var(--g) transparent transparent; }
+        .tri-yellow { border-width: 0 0 33px 33px; border-color: transparent transparent var(--y) transparent; }
+        .tri-blue { border-width: 33px 0 0 33px; border-color: transparent transparent transparent var(--b); }
+
+        /* HÜCRELER */
+        .cell { border: 0.5px solid #ccc; box-sizing: border-box; display: flex; align-items: center; justify-content: center; position: relative; }
+        
+        /* GÖRSELDEKİ RENKLİ YOLLAR */
+        .path-red { background: var(--r) !important; }
+        .path-green { background: var(--g) !important; }
+        .path-blue { background: var(--b) !important; }
+        .path-yellow { background: var(--y) !important; }
+
+        /* YILDIZLI GÜVENLİ KARELER */
+        .star::after { content: "★"; color: #666; font-size: 18px; font-weight: bold; }
+
+        /* TAŞLAR (PAWNS) */
+        .pawn { 
+            width: 34px; height: 34px; border-radius: 50%; border: 3px solid rgba(0,0,0,0.3); 
+            z-index: 10; box-shadow: 0 4px 6px rgba(0,0,0,0.4); cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .board > .pawn { position: absolute; width: 5.5%; height: 5.5%; margin: 0.5%; }
+
+        /* KONTROLLER */
+        .controls { margin-top: 20px; text-align: center; }
+        .dice-btn { 
+            padding: 15px 35px; background: white; color: black; border-radius: 12px; 
+            font-weight: bold; border: none; font-size: 18px; box-shadow: 0 4px #999; 
+            display: flex; align-items: center; gap: 10px;
+        }
+        .dice-btn:active { box-shadow: 0 2px #999; transform: translateY(2px); }
     </style>
 </head>
 <body>
-    <div id="status" style="margin-bottom:15px;">Sıra: <span id="turn-text" style="font-weight:bold;">KIRMIZI</span></div>
+    <div id="status" style="margin-bottom:10px;">Sıra: <span id="turn-text" style="font-weight:bold; color:var(--r);">KIRMIZI</span></div>
     
     <div class="board" id="ludo-board">
-        <div class="house red" id="h-red" style="grid-area: 1/1/7/7;"></div>
-        <div class="house green" id="h-green" style="grid-area: 1/10/7/16;"></div>
-        <div class="house blue" id="h-blue" style="grid-area: 10/1/16/7;"></div>
-        <div class="house yellow" id="h-yellow" style="grid-area: 10/10/16/16;"></div>
-        <div class="center-finish">BİTİŞ</div>
+        <div class="house red" style="grid-area: 1/1/7/7;"><div class="house-inner" id="h-red"></div></div>
+        <div class="house blue" style="grid-area: 1/10/7/16;"><div class="house-inner" id="h-blue"></div></div>
+        <div class="house green" style="grid-area: 10/1/16/7;"><div class="house-inner" id="h-green"></div></div>
+        <div class="house yellow" style="grid-area: 10/10/16/16;"><div class="house-inner" id="h-yellow"></div></div>
+        
+        <div class="center-finish">
+            <div class="tri tri-red" style="grid-area: 1/1;"></div>
+            <div class="tri tri-green" style="grid-area: 2/1;"></div>
+            <div class="tri tri-blue" style="grid-area: 1/2;"></div>
+            <div class="tri tri-yellow" style="grid-area: 2/2;"></div>
+        </div>
     </div>
 
     <div class="controls">
-        <button class="dice-btn" onclick="rollDice()">🎲 Zar At: <span id="dice-v">?</span></button>
+        <button class="dice-btn" onclick="rollDice()">
+            <span id="dice-icon">🎲</span> Zar At: <span id="dice-v">?</span>
+        </button>
     </div>
 
     <script>
         const board = document.getElementById('ludo-board');
-        const colors = ['red', 'green', 'yellow', 'blue'];
-        
-        // BAŞLANGIÇ NOKTALARI (Yuvaya bağlı ilk renkli kareler)
-        const starts = { red: 0, green: 13, yellow: 26, blue: 39 };
-
-        // YOL: Saat yönünde, her rengin başlangıç karesinden başlayan tam liste
-        const path = [
-            {r:7,c:2},{r:7,c:3},{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:6,c:6},{r:5,c:6},{r:4,c:6},{r:3,c:6},{r:2,c:6},{r:1,c:6},{r:1,c:7},{r:1,c:8}, // Red start & path
-            {r:2,c:9},{r:3,c:9},{r:4,c:9},{r:5,c:9},{r:6,c:9},{r:7,c:9},{r:7,c:10},{r:7,c:11},{r:7,c:12},{r:7,c:13},{r:7,c:14},{r:7,c:15},{r:8,c:15}, // Green start & path
-            {r:9,c:14},{r:9,c:13},{r:9,c:12},{r:9,c:11},{r:9,c:10},{r:10,c:9},{r:11,c:9},{r:12,c:9},{r:13,c:9},{r:14,c:9},{r:15,c:9},{r:15,c:8},{r:15,c:7}, // Yellow start & path
-            {r:14,c:7},{r:13,c:7},{r:12,c:7},{r:11,c:7},{r:10,c:7},{r:9,c:7},{r:9,c:6},{r:9,c:5},{r:9,c:4},{r:9,c:3},{r:9,c:2},{r:9,c:1},{r:8,c:1}  // Blue start & path
-        ];
-
-        let pawns = [];
-        colors.forEach(c => { for(let i=0; i<4; i++) pawns.push({ id: c+i, color: c, pos: -1 }); });
-
+        const colors = ['red', 'blue', 'yellow', 'green']; // Saat yönü sırası
         let turn = 0, lastDice = 0, canRoll = true;
 
-        function init() {
+        function createCells() {
             for(let r=1; r<=15; r++){
                 for(let c=1; c<=15; c++){
+                    // Sadece yolları çiz (Evleri ve merkezi atla)
                     if(!((r<7 && c<7) || (r<7 && c>9) || (r>9 && c<7) || (r>9 && c>9) || (r>6 && r<10 && c>6 && c<10))){
                         const cell = document.createElement('div');
-                        cell.className = 'cell'; cell.style.gridArea = `${r}/${c}`;
-                        if(c==8 && r>1 && r<7) cell.classList.add('s-green');
-                        if(c==8 && r>9 && r<15) cell.classList.add('s-blue');
-                        if(r==8 && c>1 && c<7) cell.classList.add('s-red');
-                        if(r==8 && c>9 && c<15) cell.classList.add('s-yellow');
+                        cell.className = 'cell';
+                        cell.style.gridArea = `${r}/${c}`;
+                        
+                        // Görseldeki Renkli Yollar ve Yıldızlar
+                        // RED Path & Star
+                        if(r==8 && c>1 && c<7) cell.classList.add('path-red');
+                        if(r==7 && c==2) cell.classList.add('path-red', 'star');
+                        if(r==9 && c==3) cell.classList.add('star');
+
+                        // BLUE Path & Star
+                        if(c==8 && r>1 && r<7) cell.classList.add('path-blue');
+                        if(r==2 && c==9) cell.classList.add('path-blue', 'star');
+                        if(r==3 && c==7) cell.classList.add('star');
+
+                        // YELLOW Path & Star
+                        if(r==8 && c>9 && c<15) cell.classList.add('path-yellow');
+                        if(r==9 && c==14) cell.classList.add('path-yellow', 'star');
+                        if(r==7 && c==13) cell.classList.add('star');
+
+                        // GREEN Path & Star
+                        if(c==8 && r>9 && r<15) cell.classList.add('path-green');
+                        if(r==14 && c==7) cell.classList.add('path-green', 'star');
+                        if(r==13 && c==9) cell.classList.add('star');
+
                         board.appendChild(cell);
                     }
                 }
             }
-            render();
         }
 
-        function render() {
-            document.querySelectorAll('.pawn').forEach(p => p.remove());
-            pawns.forEach(p => {
-                const el = document.createElement('div');
-                el.className = `pawn p-${p.color}`;
-                if(p.pos === -1) { document.getElementById(`h-${p.color}`).appendChild(el); }
-                else { const c = path[p.pos]; el.style.gridArea = `${c.r}/${c.c}`; board.appendChild(el); }
-                el.onclick = () => move(p);
-            });
-            const t = document.getElementById('turn-text');
-            t.innerText = colors[turn].toUpperCase(); t.style.color = `var(--${colors[turn][0]})`;
-        }
+        let pawns = [];
+        colors.forEach(c => {
+            for(let i=0; i<4; i++) {
+                const p = { id: c+i, color: c, pos: -1 };
+                pawns.push(p);
+                const pEl = document.createElement('div');
+                pEl.className = `pawn ${c}`;
+                pEl.id = p.id;
+                document.getElementById('h-'+c).appendChild(pEl);
+            }
+        });
 
         window.rollDice = function() {
             if(!canRoll) return;
             lastDice = Math.floor(Math.random() * 6) + 1;
             document.getElementById('dice-v').innerText = lastDice;
+            // Buraya daha sonra oynanış mantığını ekleyeceğiz
             canRoll = false;
-            const canM = pawns.some(p => p.color === colors[turn] && (p.pos !== -1 || lastDice === 6));
-            if(!canM) setTimeout(next, 800);
+            setTimeout(() => { canRoll = true; }, 1000); 
         };
 
-        function move(p) {
-            if(p.color !== colors[turn] || lastDice === 0) return;
-            if(p.pos === -1 && lastDice === 6) { p.pos = starts[p.color]; }
-            else if(p.pos !== -1) { p.pos = (p.pos + lastDice) % 52; }
-            else return;
-            if(lastDice !== 6) next(); else { lastDice = 0; canRoll = true; render(); }
-        }
-
-        function next() { turn = (turn + 1) % 4; lastDice = 0; canRoll = true; render(); }
-        init();
+        createCells();
     </script>
 </body>
 </html>
