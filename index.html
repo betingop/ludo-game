@@ -5,150 +5,112 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --r: #ff3232; --g: #28c76f; --b: #1e90ff; --y: #f9ca24; --bg: #1e1e1e; }
-        body { margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+        :root { --r: #ff3232; --g: #28c76f; --b: #1e90ff; --y: #f9ca24; --bg: #121212; }
+        body { margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; font-family: sans-serif; }
         
-        /* ANA TAHTA TASARIMI */
         .board { 
             display: grid; grid-template-columns: repeat(15, 1fr); grid-template-rows: repeat(15, 1fr); 
             width: 95vw; height: 95vw; max-width: 450px; max-height: 450px; 
-            background: #fff; border: 5px solid #333; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            background: #fff; border: 4px solid #333; position: relative;
         }
 
-        /* YUVALAR (HOUSES) */
+        /* Yuvalar ve İç Alanları */
         .house { grid-column: span 6; grid-row: span 6; display: flex; align-items: center; justify-content: center; border: 1px solid #000; }
-        .house-inner { width: 70%; height: 70%; background: white; border-radius: 15px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 10px; padding: 10px; border: 2px solid rgba(0,0,0,0.1); }
+        .h-inner { width: 75%; height: 75%; background: white; border-radius: 10px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; padding: 10px; }
         
-        .red { background: var(--r); } .green { background: var(--g); } .blue { background: var(--b); } .yellow { background: var(--y); }
+        .red { background: var(--r); } .blue { background: var(--b); } .yellow { background: var(--y); } .green { background: var(--g); }
 
-        /* MERKEZ (BİTİŞ) */
-        .center-finish { 
-            grid-area: 7/7/10/10; display: grid; 
-            grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; 
-            background: #eee; border: 1px solid #000; z-index: 5;
-        }
+        /* Merkez Tasarımı */
+        .center { grid-area: 7/7/10/10; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; border: 1px solid #000; background: #eee; }
         .tri { width: 0; height: 0; border-style: solid; }
-        .tri-red { border-width: 33px 33px 0 0; border-color: var(--r) transparent transparent transparent; }
-        .tri-green { border-width: 0 33px 33px 0; border-color: transparent var(--g) transparent transparent; }
-        .tri-yellow { border-width: 0 0 33px 33px; border-color: transparent transparent var(--y) transparent; }
-        .tri-blue { border-width: 33px 0 0 33px; border-color: transparent transparent transparent var(--b); }
+        .tri-r { border-width: 33px 0 33px 33px; border-color: transparent transparent transparent var(--r); grid-area: 1/1/3/2; }
+        .tri-b { border-width: 33px 33px 0 33px; border-color: var(--b) transparent transparent transparent; grid-area: 1/1/2/3; }
+        .tri-y { border-width: 33px 33px 33px 0; border-color: transparent var(--y) transparent transparent; grid-area: 1/2/3/3; }
+        .tri-g { border-width: 0 33px 33px 33px; border-color: transparent transparent var(--g) transparent; grid-area: 2/1/3/3; }
 
-        /* HÜCRELER */
-        .cell { border: 0.5px solid #ccc; box-sizing: border-box; display: flex; align-items: center; justify-content: center; position: relative; }
-        
-        /* GÖRSELDEKİ RENKLİ YOLLAR */
-        .path-red { background: var(--r) !important; }
-        .path-green { background: var(--g) !important; }
-        .path-blue { background: var(--b) !important; }
-        .path-yellow { background: var(--y) !important; }
+        /* Hücreler ve Yollar */
+        .cell { border: 0.1px solid #ddd; box-sizing: border-box; position: relative; display: flex; align-items: center; justify-content: center; }
+        .s-red { background: var(--r) !important; } .s-blue { background: var(--b) !important; }
+        .s-yellow { background: var(--y) !important; } .s-green { background: var(--g) !important; }
+        .star::after { content: "★"; color: #999; font-size: 14px; position: absolute; }
 
-        /* YILDIZLI GÜVENLİ KARELER */
-        .star::after { content: "★"; color: #666; font-size: 18px; font-weight: bold; }
-
-        /* TAŞLAR (PAWNS) */
+        /* Taşlar */
         .pawn { 
-            width: 34px; height: 34px; border-radius: 50%; border: 3px solid rgba(0,0,0,0.3); 
-            z-index: 10; box-shadow: 0 4px 6px rgba(0,0,0,0.4); cursor: pointer;
-            transition: transform 0.2s;
+            width: 25px; height: 25px; border-radius: 50%; border: 3px solid rgba(0,0,0,0.3); 
+            box-shadow: 0 3px 5px rgba(0,0,0,0.4); cursor: pointer; z-index: 10;
         }
-        .board > .pawn { position: absolute; width: 5.5%; height: 5.5%; margin: 0.5%; }
+        #ludo-board > .pawn { position: absolute; width: 5.5%; height: 5.5%; margin: 0.4%; z-index: 20; }
+        .p-red { background: var(--r); } .p-blue { background: var(--b); } 
+        .p-yellow { background: var(--y); } .p-green { background: var(--g); }
 
-        /* KONTROLLER */
-        .controls { margin-top: 20px; text-align: center; }
-        .dice-btn { 
-            padding: 15px 35px; background: white; color: black; border-radius: 12px; 
-            font-weight: bold; border: none; font-size: 18px; box-shadow: 0 4px #999; 
-            display: flex; align-items: center; gap: 10px;
-        }
-        .dice-btn:active { box-shadow: 0 2px #999; transform: translateY(2px); }
+        .controls { margin-top: 15px; text-align: center; color: white; }
+        .dice-btn { padding: 12px 30px; background: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; box-shadow: 0 4px #888; }
+        .dice-btn:active { transform: translateY(2px); box-shadow: 0 2px #888; }
     </style>
 </head>
 <body>
-    <div id="status" style="margin-bottom:10px;">Sıra: <span id="turn-text" style="font-weight:bold; color:var(--r);">KIRMIZI</span></div>
+    <div id="status" style="margin-bottom:10px;">Sıra: <span id="turn-text" style="color:var(--r); font-weight:bold;">KIRMIZI</span></div>
     
     <div class="board" id="ludo-board">
-        <div class="house red" style="grid-area: 1/1/7/7;"><div class="house-inner" id="h-red"></div></div>
-        <div class="house blue" style="grid-area: 1/10/7/16;"><div class="house-inner" id="h-blue"></div></div>
-        <div class="house green" style="grid-area: 10/1/16/7;"><div class="house-inner" id="h-green"></div></div>
-        <div class="house yellow" style="grid-area: 10/10/16/16;"><div class="house-inner" id="h-yellow"></div></div>
+        <div class="house red" style="grid-area: 1/1/7/7;"><div class="h-inner" id="h-red"></div></div>
+        <div class="house blue" style="grid-area: 1/10/7/16;"><div class="h-inner" id="h-blue"></div></div>
+        <div class="house green" style="grid-area: 10/1/16/7;"><div class="h-inner" id="h-green"></div></div>
+        <div class="house yellow" style="grid-area: 10/10/16/16;"><div class="h-inner" id="h-yellow"></div></div>
         
-        <div class="center-finish">
-            <div class="tri tri-red" style="grid-area: 1/1;"></div>
-            <div class="tri tri-green" style="grid-area: 2/1;"></div>
-            <div class="tri tri-blue" style="grid-area: 1/2;"></div>
-            <div class="tri tri-yellow" style="grid-area: 2/2;"></div>
-        </div>
+        <div class="center"><div class="tri-r"></div><div class="tri-b"></div><div class="tri-y"></div><div class="tri-g"></div></div>
     </div>
 
     <div class="controls">
-        <button class="dice-btn" onclick="rollDice()">
-            <span id="dice-icon">🎲</span> Zar At: <span id="dice-v">?</span>
-        </button>
+        <button class="dice-btn" onclick="roll()">🎲 Zar At: <span id="dice-v">?</span></button>
     </div>
 
     <script>
         const board = document.getElementById('ludo-board');
-        const colors = ['red', 'blue', 'yellow', 'green']; // Saat yönü sırası
+        const colors = ['red', 'blue', 'yellow', 'green'];
         let turn = 0, lastDice = 0, canRoll = true;
 
-        function createCells() {
+        // Tahta Hücrelerini Oluşturma
+        function buildBoard() {
             for(let r=1; r<=15; r++){
                 for(let c=1; c<=15; c++){
-                    // Sadece yolları çiz (Evleri ve merkezi atla)
                     if(!((r<7 && c<7) || (r<7 && c>9) || (r>9 && c<7) || (r>9 && c>9) || (r>6 && r<10 && c>6 && c<10))){
                         const cell = document.createElement('div');
-                        cell.className = 'cell';
-                        cell.style.gridArea = `${r}/${c}`;
-                        
-                        // Görseldeki Renkli Yollar ve Yıldızlar
-                        // RED Path & Star
-                        if(r==8 && c>1 && c<7) cell.classList.add('path-red');
-                        if(r==7 && c==2) cell.classList.add('path-red', 'star');
-                        if(r==9 && c==3) cell.classList.add('star');
-
-                        // BLUE Path & Star
-                        if(c==8 && r>1 && r<7) cell.classList.add('path-blue');
-                        if(r==2 && c==9) cell.classList.add('path-blue', 'star');
-                        if(r==3 && c==7) cell.classList.add('star');
-
-                        // YELLOW Path & Star
-                        if(r==8 && c>9 && c<15) cell.classList.add('path-yellow');
-                        if(r==9 && c==14) cell.classList.add('path-yellow', 'star');
-                        if(r==7 && c==13) cell.classList.add('star');
-
-                        // GREEN Path & Star
-                        if(c==8 && r>9 && r<15) cell.classList.add('path-green');
-                        if(r==14 && c==7) cell.classList.add('path-green', 'star');
-                        if(r==13 && c==9) cell.classList.add('star');
-
+                        cell.className = 'cell'; cell.style.gridArea = `${r}/${c}`;
+                        // Renkli Yollar
+                        if(r==8 && c>1 && c<7) cell.classList.add('s-red');
+                        if(c==8 && r>1 && r<7) cell.classList.add('s-blue');
+                        if(r==8 && c>9 && c<15) cell.classList.add('s-yellow');
+                        if(c==8 && r>9 && r<15) cell.classList.add('s-green');
+                        // Yıldızlar
+                        if((r==7 && c==2) || (r==2 && c==9) || (r==9 && c==14) || (r==14 && c==7) || (r==9 && c==3) || (r==3 && c==7) || (r==7 && c==13) || (r==13 && c==9)) cell.classList.add('star');
                         board.appendChild(cell);
                     }
                 }
             }
         }
 
+        // Oyunun beyni buraya gelecek
         let pawns = [];
         colors.forEach(c => {
             for(let i=0; i<4; i++) {
                 const p = { id: c+i, color: c, pos: -1 };
                 pawns.push(p);
                 const pEl = document.createElement('div');
-                pEl.className = `pawn ${c}`;
+                pEl.className = `pawn p-${c}`;
                 pEl.id = p.id;
                 document.getElementById('h-'+c).appendChild(pEl);
             }
         });
 
-        window.rollDice = function() {
+        window.roll = function() {
             if(!canRoll) return;
             lastDice = Math.floor(Math.random() * 6) + 1;
             document.getElementById('dice-v').innerText = lastDice;
-            // Buraya daha sonra oynanış mantığını ekleyeceğiz
             canRoll = false;
-            setTimeout(() => { canRoll = true; }, 1000); 
+            setTimeout(() => { canRoll = true; }, 800);
         };
 
-        createCells();
+        buildBoard();
     </script>
 </body>
 </html>
