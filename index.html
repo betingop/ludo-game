@@ -7,45 +7,21 @@
     <style>
         :root { --r: #ff4d4d; --g: #2ecc71; --b: #3498db; --y: #f1c40f; --bg: #121212; }
         body { margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: white; font-family: sans-serif; overflow: hidden; }
-        
-        .board { 
-            display: grid; grid-template-columns: repeat(15, 1fr); grid-template-rows: repeat(15, 1fr); 
-            width: 95vw; height: 95vw; max-width: 450px; max-height: 450px; 
-            background: white; border: 4px solid #333; position: relative; 
-        }
-
+        .board { display: grid; grid-template-columns: repeat(15, 1fr); grid-template-rows: repeat(15, 1fr); width: 95vw; height: 95vw; max-width: 450px; max-height: 450px; background: white; border: 4px solid #333; position: relative; }
         .house { grid-column: span 6; grid-row: span 6; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 8px; border: 1px solid #0002; }
         .red { background: var(--r); } .green { background: var(--g); } .blue { background: var(--b); } .yellow { background: var(--y); }
-        
-        .center-finish { grid-area: 7/7/10/10; background: #eee; border: 1px solid #000; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #333; font-weight: bold; z-index: 2; }
-        .cell { border: 0.1px solid #ddd; box-sizing: border-box; display: flex; align-items: center; justify-content: center; }
-        
-        /* Koridor Renkleri */
-        .s-red { background: #ffcccc !important; }
-        .s-green { background: #ccffcc !important; }
-        .s-blue { background: #cce5ff !important; }
-        .s-yellow { background: #fff5cc !important; }
-
-        /* TAŞLAR - Formu Korunan Tasarım */
-        .pawn { 
-            width: 35px; height: 35px; border-radius: 50%; border: 3px solid rgba(0,0,0,0.4); 
-            transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); z-index: 10; 
-            box-shadow: 0 4px 8px rgba(0,0,0,0.5); cursor: pointer; flex-shrink: 0;
-        }
-        
-        /* Yoldaki taşları hücreye sığdır */
-        .board > .pawn { width: 80%; height: 80%; position: relative; z-index: 20; }
-
-        .p-red { background: var(--r); } .p-green { background: var(--g); } 
-        .p-blue { background: var(--b); } .p-yellow { background: var(--y); }
-
-        .controls { margin-top: 20px; text-align: center; }
-        .dice-btn { padding: 14px 28px; background: white; color: black; border-radius: 12px; font-weight: bold; border: none; font-size: 18px; box-shadow: 0 5px #bbb; }
-        .dice-btn:active { box-shadow: 0 2px #bbb; transform: translateY(3px); }
+        .center-finish { grid-area: 7/7/10/10; background: #eee; border: 1px solid #000; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #333; font-weight: bold; z-index: 5; }
+        .cell { border: 0.1px solid #ddd; box-sizing: border-box; }
+        .s-red { background: #ffcccc !important; } .s-green { background: #ccffcc !important; } .s-blue { background: #cce5ff !important; } .s-yellow { background: #fff5cc !important; }
+        .pawn { width: 32px; height: 32px; border-radius: 50%; border: 3px solid rgba(0,0,0,0.4); z-index: 10; box-shadow: 0 4px 8px rgba(0,0,0,0.5); cursor: pointer; flex-shrink: 0; }
+        .board > .pawn { width: 80%; height: 80%; position: absolute; margin: 10%; z-index: 20; }
+        .p-red { background: var(--r); } .p-green { background: var(--g); } .p-blue { background: var(--b); } .p-yellow { background: var(--y); }
+        .controls { margin-top: 20px; }
+        .dice-btn { padding: 14px 28px; background: white; color: black; border-radius: 12px; font-weight: bold; border: none; font-size: 18px; box-shadow: 0 5px #bbb; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div id="status" style="margin-bottom:15px; font-size: 1.2rem;">Sıra: <span id="turn-text" style="font-weight:bold;">KIRMIZI</span></div>
+    <div id="status" style="margin-bottom:15px;">Sıra: <span id="turn-text" style="font-weight:bold;">KIRMIZI</span></div>
     
     <div class="board" id="ludo-board">
         <div class="house red" id="h-red" style="grid-area: 1/1/7/7;"></div>
@@ -60,40 +36,31 @@
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-
         const board = document.getElementById('ludo-board');
         const colors = ['red', 'green', 'yellow', 'blue'];
         
-        // BAŞLANGIÇ NOKTALARI (Kendi renkli koridorunun hemen dışındaki kareler)
-        const starts = { red: 1, green: 14, yellow: 27, blue: 40 };
-        
-        let turn = 0;
-        let lastDice = 0;
-        let canRoll = true;
+        // BAŞLANGIÇ NOKTALARI (Yuvaya bağlı ilk renkli kareler)
+        const starts = { red: 0, green: 13, yellow: 26, blue: 39 };
 
-        // ANA YOL (52 Kare)
+        // YOL: Saat yönünde, her rengin başlangıç karesinden başlayan tam liste
         const path = [
-            {r:8,c:1},{r:7,c:1},{r:7,c:2},{r:7,c:3},{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:6,c:6},{r:5,c:6},{r:4,c:6},{r:3,c:6},{r:2,c:6},{r:1,c:6},
-            {r:1,c:7},{r:1,c:8},{r:1,c:9},{r:2,c:9},{r:3,c:9},{r:4,c:9},{r:5,c:9},{r:6,c:9},{r:7,c:9},{r:7,c:10},{r:7,c:11},{r:7,c:12},{r:7,c:13},{r:7,c:14},{r:7,c:15},
-            {r:8,c:15},{r:9,c:15},{r:9,c:14},{r:9,c:13},{r:9,c:12},{r:9,c:11},{r:9,c:10},{r:9,c:9},{r:10,c:9},{r:11,c:9},{r:12,c:9},{r:13,c:9},{r:14,c:9},{r:15,c:9},
-            {r:15,c:8},{r:15,c:7},{r:15,c:6},{r:14,c:6},{r:13,c:6},{r:12,c:6},{r:11,c:6},{r:10,c:6},{r:9,c:6},{r:9,c:5},{r:9,c:4},{r:9,c:3},{r:9,c:2},{r:9,c:1}
+            {r:7,c:2},{r:7,c:3},{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:6,c:6},{r:5,c:6},{r:4,c:6},{r:3,c:6},{r:2,c:6},{r:1,c:6},{r:1,c:7},{r:1,c:8}, // Red start & path
+            {r:2,c:9},{r:3,c:9},{r:4,c:9},{r:5,c:9},{r:6,c:9},{r:7,c:9},{r:7,c:10},{r:7,c:11},{r:7,c:12},{r:7,c:13},{r:7,c:14},{r:7,c:15},{r:8,c:15}, // Green start & path
+            {r:9,c:14},{r:9,c:13},{r:9,c:12},{r:9,c:11},{r:9,c:10},{r:10,c:9},{r:11,c:9},{r:12,c:9},{r:13,c:9},{r:14,c:9},{r:15,c:9},{r:15,c:8},{r:15,c:7}, // Yellow start & path
+            {r:14,c:7},{r:13,c:7},{r:12,c:7},{r:11,c:7},{r:10,c:7},{r:9,c:7},{r:9,c:6},{r:9,c:5},{r:9,c:4},{r:9,c:3},{r:9,c:2},{r:9,c:1},{r:8,c:1}  // Blue start & path
         ];
 
         let pawns = [];
-        colors.forEach(c => {
-            for(let i=0; i<4; i++) pawns.push({ id: c+i, color: c, pos: -1, stepCount: 0 });
-        });
+        colors.forEach(c => { for(let i=0; i<4; i++) pawns.push({ id: c+i, color: c, pos: -1 }); });
+
+        let turn = 0, lastDice = 0, canRoll = true;
 
         function init() {
             for(let r=1; r<=15; r++){
                 for(let c=1; c<=15; c++){
                     if(!((r<7 && c<7) || (r<7 && c>9) || (r>9 && c<7) || (r>9 && c>9) || (r>6 && r<10 && c>6 && c<10))){
                         const cell = document.createElement('div');
-                        cell.className = 'cell';
-                        cell.style.gridArea = `${r}/${c}`;
-                        // Koridor Boyama
+                        cell.className = 'cell'; cell.style.gridArea = `${r}/${c}`;
                         if(c==8 && r>1 && r<7) cell.classList.add('s-green');
                         if(c==8 && r>9 && r<15) cell.classList.add('s-blue');
                         if(r==8 && c>1 && c<7) cell.classList.add('s-red');
@@ -110,18 +77,12 @@
             pawns.forEach(p => {
                 const el = document.createElement('div');
                 el.className = `pawn p-${p.color}`;
-                if(p.pos === -1) {
-                    document.getElementById(`h-${p.color}`).appendChild(el);
-                } else {
-                    const c = path[p.pos];
-                    el.style.gridArea = `${c.r}/${c.c}`;
-                    board.appendChild(el);
-                }
+                if(p.pos === -1) { document.getElementById(`h-${p.color}`).appendChild(el); }
+                else { const c = path[p.pos]; el.style.gridArea = `${c.r}/${c.c}`; board.appendChild(el); }
                 el.onclick = () => move(p);
             });
             const t = document.getElementById('turn-text');
-            t.innerText = colors[turn].toUpperCase();
-            t.style.color = `var(--${colors[turn][0]})`;
+            t.innerText = colors[turn].toUpperCase(); t.style.color = `var(--${colors[turn][0]})`;
         }
 
         window.rollDice = function() {
@@ -129,32 +90,19 @@
             lastDice = Math.floor(Math.random() * 6) + 1;
             document.getElementById('dice-v').innerText = lastDice;
             canRoll = false;
-            const canMove = pawns.some(p => p.color === colors[turn] && (p.pos !== -1 || lastDice === 6));
-            if(!canMove) setTimeout(next, 800);
+            const canM = pawns.some(p => p.color === colors[turn] && (p.pos !== -1 || lastDice === 6));
+            if(!canM) setTimeout(next, 800);
         };
 
         function move(p) {
             if(p.color !== colors[turn] || lastDice === 0) return;
-            if(p.pos === -1 && lastDice === 6) {
-                p.pos = starts[p.color];
-                p.stepCount = 0;
-            } else if(p.pos !== -1) {
-                p.pos = (p.pos + lastDice) % 52;
-                p.stepCount += lastDice;
-            } else return;
-            
-            if(lastDice !== 6) next();
-            else { lastDice = 0; canRoll = true; document.getElementById('dice-v').innerText = "6! Tekrar"; render(); }
+            if(p.pos === -1 && lastDice === 6) { p.pos = starts[p.color]; }
+            else if(p.pos !== -1) { p.pos = (p.pos + lastDice) % 52; }
+            else return;
+            if(lastDice !== 6) next(); else { lastDice = 0; canRoll = true; render(); }
         }
 
-        function next() {
-            turn = (turn + 1) % 4;
-            lastDice = 0;
-            canRoll = true;
-            document.getElementById('dice-v').innerText = "?";
-            render();
-        }
-
+        function next() { turn = (turn + 1) % 4; lastDice = 0; canRoll = true; render(); }
         init();
     </script>
 </body>
