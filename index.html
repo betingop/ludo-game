@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ludo Telegram</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --red: #e74c3c; --blue: #3498db; --green: #2ecc71; --yellow: #f1c40f;
+            --white: #ecf0f1; --border: #2c3e50;
+        }
+        body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #222; font-family: sans-serif; }
+        
+        /* 15x15 Grid Yapısı */
+        .ludo-board {
+            display: grid;
+            grid-template-columns: repeat(15, 1fr);
+            grid-template-rows: repeat(15, 1fr);
+            width: 95vw;
+            height: 95vw;
+            max-width: 500px;
+            max-height: 500px;
+            background: white;
+            border: 5px solid var(--border);
+        }
+
+        .cell { border: 0.5px solid #ccc; position: relative; }
+        
+        /* Renkli Bölgeler (Evler) */
+        .house { grid-column: span 6; grid-row: span 6; border: 2px solid var(--border); }
+        .red-house { background: var(--red); grid-area: 1 / 1 / 7 / 7; }
+        .green-house { background: var(--green); grid-area: 1 / 10 / 7 / 16; }
+        .yellow-house { background: var(--yellow); grid-area: 10 / 10 / 16 / 16; }
+        .blue-house { background: var(--blue); grid-area: 10 / 1 / 16 / 7; }
+
+        /* Bitiş Alanı (Merkez) */
+        .home-center {
+            grid-area: 7 / 7 / 10 / 10;
+            background: #eee;
+            border: 2px solid var(--border);
+        }
+
+        /* Zar Butonu */
+        .dice-container {
+            position: absolute;
+            bottom: 20px;
+            padding: 15px 30px;
+            background: white;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ludo-board">
+        <div class="house red-house"></div>
+        <div class="house green-house"></div>
+        <div class="house yellow-house"></div>
+        <div class="house blue-house"></div>
+        
+        <div class="home-center"></div>
+        
+        </div>
+
+    <div class="dice-container" onclick="rollDice()">
+        Zar At: <span id="dice-value">?</span>
+    </div>
+
+    <script>
+        // Telegram WebApp Başlatma
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Ekranı tam boy yap
+
+        function rollDice() {
+            const val = Math.floor(Math.random() * 6) + 1;
+            document.getElementById('dice-value').innerText = val;
+            tg.HapticFeedback.impactOccurred('medium'); // Telefona titreşim verir
+        }
+    </script>
+</body>
+</html>
