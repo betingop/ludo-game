@@ -15,7 +15,7 @@
         }
 
         .house { grid-column: span 6; grid-row: span 6; display: flex; align-items: center; justify-content: center; border: 1px solid #000; }
-        .h-inner { width: 75%; height: 75%; background: white; border-radius: 10px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; padding: 10px; }
+        .h-inner { width: 75%; height: 75%; background: white; border-radius: 10px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; padding: 10px; border: 1px solid #ddd; }
         
         .red { background: var(--r); } .blue { background: var(--b); } .yellow { background: var(--y); } .green { background: var(--g); }
 
@@ -26,29 +26,28 @@
         .tri-y { border-width: 33px 33px 33px 0; border-color: transparent var(--y) transparent transparent; grid-area: 1/2/3/3; }
         .tri-g { border-width: 0 33px 33px 33px; border-color: transparent transparent var(--g) transparent; grid-area: 2/1/3/3; }
 
-        .cell { border: 0.1px solid #ddd; box-sizing: border-box; position: relative; display: flex; align-items: center; justify-content: center; }
+        .cell { border: 0.1px solid #ddd; box-sizing: border-box; display: flex; align-items: center; justify-content: center; position: relative; }
         
-        /* ÖZEL BAŞLANGIÇ KARELERİ (Yıldız yerine renk) */
-        .start-red { background: var(--r) !important; border: 2px solid #0003; }
-        .start-blue { background: var(--b) !important; border: 2px solid #0003; }
-        .start-yellow { background: var(--y) !important; border: 2px solid #0003; }
-        .start-green { background: var(--g) !important; border: 2px solid #0003; }
+        /* İSTEDİĞİN RENKLİ BAŞLANGIÇ KARELERİ */
+        .start-red { background: var(--r) !important; }
+        .start-blue { background: var(--b) !important; }
+        .start-yellow { background: var(--y) !important; }
+        .start-green { background: var(--g) !important; }
 
-        /* Bitiş Yolları (Soluk Renkler) */
-        .path-red { background: #ffcccc !important; }
-        .path-blue { background: #cce5ff !important; }
-        .path-yellow { background: #fff5cc !important; }
-        .path-green { background: #ccffcc !important; }
+        /* Bitiş Yolları */
+        .path-red { background: var(--r); opacity: 0.8; }
+        .path-blue { background: var(--b); opacity: 0.8; }
+        .path-yellow { background: var(--y); opacity: 0.8; }
+        .path-green { background: var(--g); opacity: 0.8; }
 
         .pawn { 
-            width: 28px; height: 28px; border-radius: 50%; border: 3px solid rgba(0,0,0,0.3); 
-            box-shadow: 0 3px 5px rgba(0,0,0,0.4); cursor: pointer; z-index: 10;
+            width: 80%; height: 80%; border-radius: 50%; border: 2px solid rgba(0,0,0,0.3); 
+            box-shadow: 0 3px 5px rgba(0,0,0,0.4); cursor: pointer; transition: all 0.2s;
         }
-        #ludo-board > .pawn { position: absolute; width: 5.5%; height: 5.5%; margin: 0.4%; z-index: 20; }
         .p-red { background: var(--r); } .p-blue { background: var(--b); } 
         .p-yellow { background: var(--y); } .p-green { background: var(--g); }
 
-        .controls { margin-top: 15px; text-align: center; }
+        .controls { margin-top: 15px; }
         .dice-btn { padding: 12px 30px; background: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; box-shadow: 0 4px #888; }
     </style>
 </head>
@@ -70,21 +69,27 @@
     <script>
         const board = document.getElementById('ludo-board');
         const colors = ['red', 'blue', 'yellow', 'green'];
-        
+        let turn = 0, lastDice = 0, canRoll = true;
+
+        // Koordinat Haritası (Sırayla tüm yol)
+        const pathCoords = []; 
+        // Burada yolu manuel çizmek yerine hücreleri oluştururken renklere göre atama yapıyoruz
+
         function buildBoard() {
             for(let r=1; r<=15; r++){
                 for(let c=1; c<=15; c++){
                     if(!((r<7 && c<7) || (r<7 && c>9) || (r>9 && c<7) || (r>9 && c>9) || (r>6 && r<10 && c>6 && c<10))){
                         const cell = document.createElement('div');
-                        cell.className = 'cell'; cell.style.gridArea = `${r}/${c}`;
+                        cell.className = 'cell'; cell.id = `c-${r}-${c}`;
+                        cell.style.gridArea = `${r}/${c}`;
                         
-                        // Renkli Bitiş Koridorları
+                        // Koridor Renkleri
                         if(r==8 && c>1 && c<7) cell.classList.add('path-red');
                         if(c==8 && r>1 && r<7) cell.classList.add('path-blue');
                         if(r==8 && c>9 && c<15) cell.classList.add('path-yellow');
                         if(c==8 && r>9 && r<15) cell.classList.add('path-green');
 
-                        // BAŞLANGIÇ KARELERİ (Tam evin çıkışı)
+                        // BAŞLANGIÇ KARELERİ (İSTEDİĞİN GİBİ RENKLİ)
                         if(r==7 && c==2) cell.classList.add('start-red');
                         if(r==2 && c==9) cell.classList.add('start-blue');
                         if(r==9 && c==14) cell.classList.add('start-yellow');
@@ -99,19 +104,51 @@
         let pawns = [];
         colors.forEach(c => {
             for(let i=0; i<4; i++) {
-                const p = { id: c+i, color: c, pos: -1 };
+                const p = { id: `${c}-${i}`, color: c, pos: -1 };
                 pawns.push(p);
                 const pEl = document.createElement('div');
-                pEl.className = `pawn p-${c}`;
-                pEl.id = p.id;
+                pEl.className = `pawn p-${c}`; pEl.id = p.id;
+                pEl.onclick = () => movePawn(p);
                 document.getElementById('h-'+c).appendChild(pEl);
             }
         });
 
         window.roll = function() {
-            let v = Math.floor(Math.random() * 6) + 1;
-            document.getElementById('dice-v').innerText = v;
+            if(!canRoll) return;
+            lastDice = Math.floor(Math.random() * 6) + 1;
+            document.getElementById('dice-v').innerText = lastDice;
+            canRoll = false;
+            // Hareket edemiyorsa sırayı geç (Basit mantık)
+            const canMove = pawns.some(p => p.color === colors[turn] && (p.pos !== -1 || lastDice === 6));
+            if(!canMove) setTimeout(nextTurn, 1000);
         };
+
+        function movePawn(p) {
+            if(p.color !== colors[turn] || lastDice === 0) return;
+            
+            // Yuvadan Çıkış (6 ile)
+            if(p.pos === -1 && lastDice === 6) {
+                const startCells = { red:'c-7-2', blue:'c-2-9', yellow:'c-9-14', green:'c-14-7' };
+                const cell = document.getElementById(startCells[p.color]);
+                cell.appendChild(document.getElementById(p.id));
+                p.pos = 0; // Başlangıç noktası
+                finishMove();
+            }
+        }
+
+        function finishMove() {
+            if(lastDice !== 6) nextTurn();
+            else { lastDice = 0; canRoll = true; document.getElementById('dice-v').innerText = "6! Tekrar"; }
+        }
+
+        function nextTurn() {
+            turn = (turn + 1) % 4;
+            lastDice = 0; canRoll = true;
+            document.getElementById('dice-v').innerText = "?";
+            const t = document.getElementById('turn-text');
+            t.innerText = colors[turn].toUpperCase();
+            t.style.color = `var(--${colors[turn][0]})`;
+        }
 
         buildBoard();
     </script>
