@@ -14,7 +14,7 @@
             background: white; border: 4px solid #333; position: relative; 
         }
 
-        .house { grid-column: span 6; grid-row: span 6; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); padding: 15%; gap: 10px; border: 1px solid #0002; }
+        .house { grid-column: span 6; grid-row: span 6; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 5px; border: 1px solid #0002; }
         .red { background: var(--r); } .green { background: var(--g); } .blue { background: var(--b); } .yellow { background: var(--y); }
         
         .center-finish { grid-area: 7/7/10/10; background: #eee; border: 1px solid #000; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #333; font-weight: bold; }
@@ -25,39 +25,36 @@
         .s-blue { background: var(--b) !important; opacity: 0.4; }
         .s-yellow { background: var(--y) !important; opacity: 0.4; }
 
-        .safe { background: #e0e0e0; }
-        .safe::after { content: "★"; color: #aaa; font-size: 10px; position: absolute; }
-
         .pawn { 
-            width: 80%; height: 80%; border-radius: 50%; border: 2px solid rgba(0,0,0,0.5); 
-            margin: 10%; transition: all 0.3s ease; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.4); 
+            width: 30%; height: 30%; border-radius: 50%; border: 2px solid rgba(0,0,0,0.5); 
+            transition: all 0.3s ease; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.4); 
             cursor: pointer;
         }
-        /* Yoldaki taşlar için mutlak konumlandırma ayarı */
-        .board > .pawn { position: absolute; width: 5%; height: 5%; margin: 0.5%; }
+        
+        /* Yoldaki taşların boyutu */
+        #ludo-board > .pawn { position: absolute; width: 5.5%; height: 5.5%; margin: 0.4%; }
 
         .p-red { background: var(--r); } .p-green { background: var(--g); } 
         .p-blue { background: var(--b); } .p-yellow { background: var(--y); }
 
-        .controls { margin-top: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-        .dice-btn { padding: 12px 25px; background: white; color: black; border-radius: 8px; font-weight: bold; border: none; font-size: 16px; }
-        .active-pawn { outline: 3px solid white; animation: pulse 1s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+        .controls { margin-top: 15px; text-align: center; }
+        .dice-btn { padding: 12px 25px; background: white; color: black; border-radius: 8px; font-weight: bold; border: none; font-size: 16px; box-shadow: 0 4px #ccc; }
+        .dice-btn:active { box-shadow: 0 0 #ccc; transform: translateY(4px); }
     </style>
 </head>
 <body>
-    <div id="status">Sıra: <span id="turn-text" style="color:var(--r); font-weight:bold;">KIRMIZI</span></div>
+    <div id="status" style="margin-bottom:10px;">Sıra: <span id="turn-text" style="color:var(--r); font-weight:bold;">KIRMIZI</span></div>
     
     <div class="board" id="ludo-board">
-        <div class="house red" id="house-red" style="grid-area: 1/1/7/7;"></div>
-        <div class="house green" id="house-green" style="grid-area: 1/10/7/16;"></div>
-        <div class="house blue" id="house-blue" style="grid-area: 10/1/16/7;"></div>
-        <div class="house yellow" id="house-yellow" style="grid-area: 10/10/16/16;"></div>
+        <div class="house red" id="h-red" style="grid-area: 1/1/7/7;"></div>
+        <div class="house green" id="h-green" style="grid-area: 1/10/7/16;"></div>
+        <div class="house blue" id="h-blue" style="grid-area: 10/1/16/7;"></div>
+        <div class="house yellow" id="h-yellow" style="grid-area: 10/10/16/16;"></div>
         <div class="center-finish">BİTİŞ</div>
     </div>
 
     <div class="controls">
-        <button class="dice-btn" id="roll-btn" onclick="roll()">🎲 Zar At: <span id="dice-v">?</span></button>
+        <button class="dice-btn" onclick="rollDice()">🎲 Zar At: <span id="dice-v">?</span></button>
     </div>
 
     <script>
@@ -66,26 +63,22 @@
 
         const board = document.getElementById('ludo-board');
         const colors = ['red', 'green', 'yellow', 'blue'];
-        const startNodes = { red: 0, green: 13, yellow: 26, blue: 39 };
-        let turnIndex = 0;
+        const starts = { red: 0, green: 13, yellow: 26, blue: 39 };
+        let turn = 0;
         let lastDice = 0;
         let canRoll = true;
 
-        // 1. TAM YOL HARİTASI (52 Ana Kare)
-        const mainPath = [
+        const path = [
             {r:7,c:1},{r:7,c:2},{r:7,c:3},{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:6,c:6},{r:5,c:6},{r:4,c:6},{r:3,c:6},{r:2,c:6},{r:1,c:6},{r:1,c:7},{r:1,c:8},{r:1,c:9},{r:2,c:9},{r:3,c:9},{r:4,c:9},{r:5,c:9},{r:6,c:9},{r:7,c:9},{r:7,c:10},{r:7,c:11},{r:7,c:12},{r:7,c:13},{r:7,c:14},{r:7,c:15},{r:8,c:15},{r:9,c:15},{r:9,c:14},{r:9,c:13},{r:9,c:12},{r:9,c:11},{r:9,c:10},{r:9,c:9},{r:10,c:9},{r:11,c:9},{r:12,c:9},{r:13,c:9},{r:14,c:9},{r:15,c:9},{r:15,c:8},{r:15,c:7},{r:14,c:7},{r:13,c:7},{r:12,c:7},{r:11,c:7},{r:10,c:7},{r:9,c:7},{r:9,c:6},{r:9,c:5},{r:9,c:4},{r:9,c:3},{r:9,c:2},{r:9,c:1},{r:8,c:1}
         ];
 
-        // 2. TAŞLARIN BAŞLATILMASI
         let pawns = [];
         colors.forEach(c => {
-            for(let i=0; i<4; i++) {
-                pawns.push({ id: c+i, color: c, pos: -1, stepCount: 0 });
-            }
+            for(let i=0; i<4; i++) pawns.push({ id: c+i, color: c, pos: -1 });
         });
 
-        // 3. TAHTA HÜCRELERİNİ ÇİZME
-        function createCells() {
+        function init() {
+            // Hücreleri oluştur
             for(let r=1; r<=15; r++){
                 for(let c=1; c<=15; c++){
                     if(!((r<7 && c<7) || (r<7 && c>9) || (r>9 && c<7) || (r>9 && c>9) || (r>6 && r<10 && c>6 && c<10))){
@@ -96,52 +89,65 @@
                         if(c==8 && r>9 && r<15) cell.classList.add('s-blue');
                         if(r==8 && c>1 && c<7) cell.classList.add('s-red');
                         if(r==8 && c>9 && c<15) cell.classList.add('s-yellow');
-                        if((r==7 && c==2) || (r==2 && c==9) || (r==9 && c==14) || (r==14 && c==7)) cell.classList.add('safe');
                         board.appendChild(cell);
                     }
                 }
             }
+            render();
         }
 
-        // 4. TAŞLARI GÜNCELLEME
-        function updateDisplay() {
-            // Önce mevcutları temizle
+        function render() {
             document.querySelectorAll('.pawn').forEach(p => p.remove());
-            
             pawns.forEach(p => {
-                const pEl = document.createElement('div');
-                pEl.className = `pawn p-${p.color}`;
-                if (canRoll === false && p.color === colors[turnIndex]) {
-                    pEl.classList.add('active-pawn');
-                }
-                
-                if (p.pos === -1) {
-                    document.getElementById(`house-${p.color}`).appendChild(pEl);
+                const el = document.createElement('div');
+                el.className = `pawn p-${p.color}`;
+                if(p.pos === -1) {
+                    document.getElementById(`h-${p.color}`).appendChild(el);
                 } else {
-                    const coord = mainPath[p.pos];
-                    pEl.style.gridArea = `${coord.r}/${coord.c}`;
-                    board.appendChild(pEl);
+                    const c = path[p.pos];
+                    el.style.gridArea = `${c.r}/${c.c}`;
+                    board.appendChild(el);
                 }
-                pEl.onclick = () => handlePawnClick(p);
+                el.onclick = () => move(p);
             });
-            
-            const turnText = document.getElementById('turn-text');
-            turnText.innerText = colors[turnIndex].toUpperCase();
-            turnText.style.color = `var(--${colors[turnIndex][0]})`;
+            document.getElementById('turn-text').innerText = colors[turn].toUpperCase();
+            document.getElementById('turn-text').style.color = `var(--${colors[turn][0]})`;
         }
 
-        // 5. OYUN MANTIĞI
-        function roll() {
-            if (!canRoll) return;
+        window.rollDice = function() {
+            if(!canRoll) return;
             lastDice = Math.floor(Math.random() * 6) + 1;
             document.getElementById('dice-v').innerText = lastDice;
             canRoll = false;
             
-            // Hareket edebilir taş var mı?
-            const canMove = pawns.some(p => p.color === colors[turnIndex] && (p.pos !== -1 || lastDice === 6));
-            if (!canMove) {
-                setTimeout(nextTurn, 1000);
-            } else {
+            const possible = pawns.some(p => p.color === colors[turn] && (p.pos !== -1 || lastDice === 6));
+            if(!possible) setTimeout(next, 1000);
+        };
+
+        function move(p) {
+            if(p.color !== colors[turn] || lastDice === 0) return;
+            if(p.pos === -1 && lastDice === 6) {
+                p.pos = starts[p.color];
+            } else if(p.pos !== -1) {
+                p.pos = (p.pos + lastDice) % 52;
+            } else { return; }
+            
+            if(lastDice !== 6) next();
+            else { lastDice = 0; canRoll = true; document.getElementById('dice-v').innerText = "6! Tekrar"; render(); }
+        }
+
+        function next() {
+            turn = (turn + 1) % 4;
+            lastDice = 0;
+            canRoll = true;
+            document.getElementById('dice-v').innerText = "?";
+            render();
+        }
+
+        init();
+    </script>
+</body>
+</html>
                 updateDisplay();
             }
         }
