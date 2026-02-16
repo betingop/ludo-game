@@ -14,13 +14,11 @@
             background: #fff; border: 4px solid #333; position: relative;
         }
 
-        /* Yuvalar ve İç Alanları */
         .house { grid-column: span 6; grid-row: span 6; display: flex; align-items: center; justify-content: center; border: 1px solid #000; }
         .h-inner { width: 75%; height: 75%; background: white; border-radius: 10px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; padding: 10px; }
         
         .red { background: var(--r); } .blue { background: var(--b); } .yellow { background: var(--y); } .green { background: var(--g); }
 
-        /* Merkez Tasarımı */
         .center { grid-area: 7/7/10/10; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; border: 1px solid #000; background: #eee; }
         .tri { width: 0; height: 0; border-style: solid; }
         .tri-r { border-width: 33px 0 33px 33px; border-color: transparent transparent transparent var(--r); grid-area: 1/1/3/2; }
@@ -28,35 +26,40 @@
         .tri-y { border-width: 33px 33px 33px 0; border-color: transparent var(--y) transparent transparent; grid-area: 1/2/3/3; }
         .tri-g { border-width: 0 33px 33px 33px; border-color: transparent transparent var(--g) transparent; grid-area: 2/1/3/3; }
 
-        /* Hücreler ve Yollar */
         .cell { border: 0.1px solid #ddd; box-sizing: border-box; position: relative; display: flex; align-items: center; justify-content: center; }
-        .s-red { background: var(--r) !important; } .s-blue { background: var(--b) !important; }
-        .s-yellow { background: var(--y) !important; } .s-green { background: var(--g) !important; }
-        .star::after { content: "★"; color: #999; font-size: 14px; position: absolute; }
+        
+        /* ÖZEL BAŞLANGIÇ KARELERİ (Yıldız yerine renk) */
+        .start-red { background: var(--r) !important; border: 2px solid #0003; }
+        .start-blue { background: var(--b) !important; border: 2px solid #0003; }
+        .start-yellow { background: var(--y) !important; border: 2px solid #0003; }
+        .start-green { background: var(--g) !important; border: 2px solid #0003; }
 
-        /* Taşlar */
+        /* Bitiş Yolları (Soluk Renkler) */
+        .path-red { background: #ffcccc !important; }
+        .path-blue { background: #cce5ff !important; }
+        .path-yellow { background: #fff5cc !important; }
+        .path-green { background: #ccffcc !important; }
+
         .pawn { 
-            width: 25px; height: 25px; border-radius: 50%; border: 3px solid rgba(0,0,0,0.3); 
+            width: 28px; height: 28px; border-radius: 50%; border: 3px solid rgba(0,0,0,0.3); 
             box-shadow: 0 3px 5px rgba(0,0,0,0.4); cursor: pointer; z-index: 10;
         }
         #ludo-board > .pawn { position: absolute; width: 5.5%; height: 5.5%; margin: 0.4%; z-index: 20; }
         .p-red { background: var(--r); } .p-blue { background: var(--b); } 
         .p-yellow { background: var(--y); } .p-green { background: var(--g); }
 
-        .controls { margin-top: 15px; text-align: center; color: white; }
+        .controls { margin-top: 15px; text-align: center; }
         .dice-btn { padding: 12px 30px; background: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; box-shadow: 0 4px #888; }
-        .dice-btn:active { transform: translateY(2px); box-shadow: 0 2px #888; }
     </style>
 </head>
 <body>
-    <div id="status" style="margin-bottom:10px;">Sıra: <span id="turn-text" style="color:var(--r); font-weight:bold;">KIRMIZI</span></div>
+    <div id="status" style="margin-bottom:10px; color:white;">Sıra: <span id="turn-text" style="color:var(--r); font-weight:bold;">KIRMIZI</span></div>
     
     <div class="board" id="ludo-board">
         <div class="house red" style="grid-area: 1/1/7/7;"><div class="h-inner" id="h-red"></div></div>
         <div class="house blue" style="grid-area: 1/10/7/16;"><div class="h-inner" id="h-blue"></div></div>
         <div class="house green" style="grid-area: 10/1/16/7;"><div class="h-inner" id="h-green"></div></div>
         <div class="house yellow" style="grid-area: 10/10/16/16;"><div class="h-inner" id="h-yellow"></div></div>
-        
         <div class="center"><div class="tri-r"></div><div class="tri-b"></div><div class="tri-y"></div><div class="tri-g"></div></div>
     </div>
 
@@ -67,29 +70,32 @@
     <script>
         const board = document.getElementById('ludo-board');
         const colors = ['red', 'blue', 'yellow', 'green'];
-        let turn = 0, lastDice = 0, canRoll = true;
-
-        // Tahta Hücrelerini Oluşturma
+        
         function buildBoard() {
             for(let r=1; r<=15; r++){
                 for(let c=1; c<=15; c++){
                     if(!((r<7 && c<7) || (r<7 && c>9) || (r>9 && c<7) || (r>9 && c>9) || (r>6 && r<10 && c>6 && c<10))){
                         const cell = document.createElement('div');
                         cell.className = 'cell'; cell.style.gridArea = `${r}/${c}`;
-                        // Renkli Yollar
-                        if(r==8 && c>1 && c<7) cell.classList.add('s-red');
-                        if(c==8 && r>1 && r<7) cell.classList.add('s-blue');
-                        if(r==8 && c>9 && c<15) cell.classList.add('s-yellow');
-                        if(c==8 && r>9 && r<15) cell.classList.add('s-green');
-                        // Yıldızlar
-                        if((r==7 && c==2) || (r==2 && c==9) || (r==9 && c==14) || (r==14 && c==7) || (r==9 && c==3) || (r==3 && c==7) || (r==7 && c==13) || (r==13 && c==9)) cell.classList.add('star');
+                        
+                        // Renkli Bitiş Koridorları
+                        if(r==8 && c>1 && c<7) cell.classList.add('path-red');
+                        if(c==8 && r>1 && r<7) cell.classList.add('path-blue');
+                        if(r==8 && c>9 && c<15) cell.classList.add('path-yellow');
+                        if(c==8 && r>9 && r<15) cell.classList.add('path-green');
+
+                        // BAŞLANGIÇ KARELERİ (Tam evin çıkışı)
+                        if(r==7 && c==2) cell.classList.add('start-red');
+                        if(r==2 && c==9) cell.classList.add('start-blue');
+                        if(r==9 && c==14) cell.classList.add('start-yellow');
+                        if(r==14 && c==7) cell.classList.add('start-green');
+
                         board.appendChild(cell);
                     }
                 }
             }
         }
 
-        // Oyunun beyni buraya gelecek
         let pawns = [];
         colors.forEach(c => {
             for(let i=0; i<4; i++) {
@@ -103,11 +109,8 @@
         });
 
         window.roll = function() {
-            if(!canRoll) return;
-            lastDice = Math.floor(Math.random() * 6) + 1;
-            document.getElementById('dice-v').innerText = lastDice;
-            canRoll = false;
-            setTimeout(() => { canRoll = true; }, 800);
+            let v = Math.floor(Math.random() * 6) + 1;
+            document.getElementById('dice-v').innerText = v;
         };
 
         buildBoard();
