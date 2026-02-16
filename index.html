@@ -1,87 +1,48 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ludo Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root {
-            --red: #ff4d4d; --blue: #2e90ff; --green: #2ecc71; --yellow: #f1c40f;
-            --bg: #1a1a1a; --cell-border: rgba(0,0,0,0.1);
+        body { margin: 0; background: #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: white; font-family: sans-serif; }
+        .ludo-board { 
+            display: grid; grid-template-columns: repeat(15, 1fr); grid-template-rows: repeat(15, 1fr); 
+            width: 90vw; height: 90vw; max-width: 400px; max-height: 400px; background: white; border: 4px solid #333;
         }
-        body { margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; color: white; }
-        
-        /* Ana Tahta Kaplayıcısı */
-        .ludo-container { position: relative; width: 95vw; height: 95vw; max-width: 450px; max-height: 450px; background: white; display: grid; grid-template-columns: repeat(15, 1fr); grid-template-rows: repeat(15, 1fr); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-
-        /* Hücre Tasarımı */
-        .cell { border: 1px solid var(--cell-border); display: flex; align-items: center; justify-content: center; position: relative; }
-
-        /* Evler ve Merkez */
-        .house { grid-column: span 6; grid-row: span 6; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); padding: 15%; gap: 10px; }
-        .red { background: var(--red); }
-        .green { background: var(--green); }
-        .yellow { background: var(--yellow); }
-        .blue { background: var(--blue); }
-        .center { grid-column: span 3; grid-row: span 3; background: #eee; position: relative; }
-
-        /* Taşlar (Pawns) */
-        .pawn { width: 80%; height: 80%; border-radius: 50%; border: 2px solid rgba(0,0,0,0.3); box-shadow: 0 2px 5px rgba(0,0,0,0.5); z-index: 10; cursor: pointer; }
-        .pawn-red { background: var(--red); }
-        .pawn-green { background: var(--green); }
-
-        /* Kontrol Paneli */
-        .controls { margin-top: 20px; display: flex; align-items: center; gap: 20px; }
-        .dice { width: 60px; height: 60px; background: white; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: black; box-shadow: 0 4px 0 #bbb; cursor: pointer; }
-        .dice:active { transform: translateY(4px); box-shadow: none; }
-        .status { font-size: 18px; font-weight: 300; }
+        .house { grid-column: span 6; grid-row: span 6; display: flex; flex-wrap: wrap; align-content: space-around; justify-content: space-around; padding: 10px; }
+        .red { background: #ff4d4d; } .green { background: #2ecc71; }
+        .blue { background: #3498db; } .yellow { background: #f1c40f; }
+        .pawn { width: 35%; height: 35%; border-radius: 50%; border: 3px solid rgba(0,0,0,0.2); box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .p-red { background: white; border-color: #ff4d4d; }
+        .center { grid-area: 7 / 7 / 10 / 10; background: #ddd; }
+        .dice-area { margin-top: 20px; text-align: center; }
+        .btn { padding: 15px 30px; background: white; color: black; border: none; border-radius: 10px; font-weight: bold; font-size: 18px; }
     </style>
 </head>
 <body>
-
-    <div class="status" id="status-text">Sıra: <span style="color:var(--red); font-weight:bold;">Kırmızı</span></div>
-
-    <div class="ludo-container" id="board">
+    <div id="status">Sıra: Kırmızı</div>
+    <div class="ludo-board">
         <div class="house red" style="grid-area: 1/1/7/7;">
-            <div class="pawn pawn-red"></div><div class="pawn pawn-red"></div>
-            <div class="pawn pawn-red"></div><div class="pawn pawn-red"></div>
+            <div class="pawn p-red"></div><div class="pawn p-red"></div>
+            <div class="pawn p-red"></div><div class="pawn p-red"></div>
         </div>
         <div class="house green" style="grid-area: 1/10/7/16;"></div>
         <div class="house blue" style="grid-area: 10/1/16/7;"></div>
         <div class="house yellow" style="grid-area: 10/10/16/16;"></div>
-        
-        <div class="center" style="grid-area: 7/7/10/10;"></div>
-        
-        </div>
-
-    <div class="controls">
-        <div class="dice" id="dice" onclick="rollDice()">🎲</div>
-        <div id="dice-result">At!</div>
+        <div class="center"></div>
     </div>
-
+    <div class="dice-area">
+        <button class="btn" onclick="roll()">Zar At: <span id="v">?</span></button>
+    </div>
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        tg.ready();
-
-        function rollDice() {
-            const dice = document.getElementById('dice');
-            const result = document.getElementById('dice-result');
-            
-            // Dönme efekti
-            dice.style.transform = "rotate(360deg)";
-            setTimeout(() => {
-                const val = Math.floor(Math.random() * 6) + 1;
-                result.innerText = val;
-                dice.style.transform = "rotate(0deg)";
-                tg.HapticFeedback.notificationOccurred('success');
-            }, 200);
+        function roll() {
+            const val = Math.floor(Math.random() * 6) + 1;
+            document.getElementById('v').innerText = val;
+            tg.HapticFeedback.impactOccurred('medium');
         }
-
-        // Tahtadaki beyaz kareleri (yolları) otomatik oluşturma
-        const board = document.getElementById('board');
-        // Bu kısım ileride her bir karenin koordinatını belirlemek için geliştirilecek
     </script>
 </body>
 </html>
