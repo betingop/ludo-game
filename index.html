@@ -22,8 +22,7 @@
         .path-red { background: #ffcccc !important; } .path-blue { background: #cce5ff !important; }
         .path-yellow { background: #fff5cc !important; } .path-green { background: #ccffcc !important; }
         
-        /* GÜÇLENDİRİLMİŞ YILDIZLAR */
-        .star::after { content: "★"; color: rgba(0,0,0,0.6); font-size: 20px; position: absolute; z-index: 1; pointer-events: none; }
+        .star::after { content: "★"; color: rgba(0,0,0,0.5); font-size: 18px; position: absolute; z-index: 1; pointer-events: none; }
 
         .pawn { width: 85%; height: 85%; border-radius: 50%; border: 2px solid rgba(0,0,0,0.3); box-shadow: 0 3px 5px rgba(0,0,0,0.4); cursor: pointer; z-index: 10; transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .p-red { background: var(--r); } .p-blue { background: var(--b); } .p-yellow { background: var(--y); } .p-green { background: var(--g); }
@@ -46,6 +45,7 @@
         const colors = ['red', 'blue', 'yellow', 'green'];
         const startCells = { red:[7,2], blue:[2,9], yellow:[9,14], green:[14,7] };
         const safeNodes = ["7-2", "2-9", "9-14", "14-7", "9-3", "3-7", "7-13", "13-9"];
+
         const mainPath = [
             [7,1],[7,2],[7,3],[7,4],[7,5],[7,6],[6,6],[5,6],[4,6],[3,6],[2,6],[1,6],[1,7],[1,8],[1,9],[2,9],[3,9],[4,9],[5,9],[6,9],[7,9],[7,10],[7,11],[7,12],[7,13],[7,14],[7,15],[8,15],[9,15],[9,14],[9,13],[9,12],[9,11],[9,10],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[15,8],[15,7],[15,6],[14,7],[13,7],[12,7],[11,7],[10,7],[9,7],[9,6],[9,5],[9,4],[9,3],[9,2],[9,1],[8,1]
         ];
@@ -94,35 +94,49 @@
             lastDice = Math.floor(Math.random() * 6) + 1;
             document.getElementById('dice-v').innerText = lastDice;
             canRoll = false;
-            const canMove = pawns.some(p => p.color === colors[turn] && (p.pos !== -1 || lastDice === 6));
-            if(!canMove) setTimeout(nextTurn, 1000);
+            
+            const currentPlayerPawns = pawns.filter(p => p.color === colors[turn]);
+            const canMove = currentPlayerPawns.some(p => (p.pos === -1 && lastDice === 6) || p.pos !== -1);
+            
+            if(!canMove) {
+                setTimeout(nextTurn, 800);
+            }
         };
 
         function handleMove(p) {
             if(p.color !== colors[turn] || lastDice === 0) return;
 
-            let moved = false;
-            if(p.pos === -1 && lastDice === 6) {
+            let moveAmount = lastDice;
+            let success = false;
+
+            if(p.pos === -1 && moveAmount === 6) {
+                // Yuvadan çıkış: Başlangıç karesine ışınla
                 p.pos = mainPath.findIndex(coord => coord[0] === startCells[p.color][0] && coord[1] === startCells[p.color][1]);
-                moved = true;
+                success = true;
             } else if(p.pos !== -1) {
-                p.pos = (p.pos + lastDice) % mainPath.length;
-                moved = true;
+                // Yolda ilerleme: Mevcut konumu saymadan zar kadar ileri
+                p.pos = (p.pos + moveAmount) % mainPath.length;
+                success = true;
             }
 
-            if(moved) {
+            if(success) {
+                lastDice = 0; // Tekrar tıklanmasın diye sıfırla
                 checkCapture(p);
                 updatePawnPos(p);
-                // Hareket tamamlandığında zarı sıfırla ki çift tıklama hatası olmasın
-                const dicePlayed = lastDice;
-                lastDice = 0; 
-                finishAction(dicePlayed);
+                
+                if(moveAmount === 6) {
+                    canRoll = true;
+                    document.getElementById('dice-v').innerText = "6! Tekrar";
+                } else {
+                    nextTurn();
+                }
             }
         }
 
         function checkCapture(p) {
             const currentCoord = mainPath[p.pos];
             const coordKey = `${currentCoord[0]}-${currentCoord[1]}`;
+            
             if (!safeNodes.includes(coordKey)) {
                 pawns.forEach(otherPawn => {
                     if (otherPawn.color !== p.color && otherPawn.pos !== -1) {
@@ -142,18 +156,10 @@
             cell.appendChild(document.getElementById(p.id));
         }
 
-        function finishAction(diceValue) {
-            if(diceValue === 6) {
-                canRoll = true;
-                document.getElementById('dice-v').innerText = "6! Tekrar";
-            } else {
-                nextTurn();
-            }
-        }
-
         function nextTurn() {
             turn = (turn + 1) % 4;
-            lastDice = 0; canRoll = true;
+            lastDice = 0;
+            canRoll = true;
             document.getElementById('dice-v').innerText = "?";
             const t = document.getElementById('turn-text');
             t.innerText = colors[turn].toUpperCase();
